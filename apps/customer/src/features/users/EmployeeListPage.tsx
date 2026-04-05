@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Settings } from 'lucide-react';
+import { Plus, Settings, Trash2 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { userService } from '@stockbite/api-client';
@@ -22,6 +22,7 @@ export function EmployeeListPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [permissionsEmployee, setPermissionsEmployee] =
     useState<EmployeeDto | null>(null);
+  const [deleteEmployee, setDeleteEmployee] = useState<EmployeeDto | null>(null);
   const [form, setForm] = useState<CreateEmployeeRequest>(emptyCreate());
   const [errors, setErrors] = useState<
     Partial<Record<keyof CreateEmployeeRequest, string>>
@@ -37,27 +38,37 @@ export function EmployeeListPage() {
     queryFn: () => userService.getEmployees(),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => userService.deleteEmployee(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'employees'] });
+      toast.success('Çalışan silindi');
+      setDeleteEmployee(null);
+    },
+    onError: () => toast.error('Çalışan silinemedi'),
+  });
+
   const createMutation = useMutation({
     mutationFn: (req: CreateEmployeeRequest) =>
       userService.createEmployee(req),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users', 'employees'] });
-      toast.success('Employee created');
+      toast.success('Çalışan oluşturuldu');
       setShowCreate(false);
       setForm(emptyCreate());
     },
-    onError: () => toast.error('Failed to create employee'),
+    onError: () => toast.error('Çalışan oluşturulamadı'),
   });
 
   function validate() {
     const errs: typeof errors = {};
-    if (!form.email.trim()) errs.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Invalid email';
-    if (!form.firstName.trim()) errs.firstName = 'First name is required';
-    if (!form.lastName.trim()) errs.lastName = 'Last name is required';
-    if (!form.password.trim()) errs.password = 'Password is required';
+    if (!form.email.trim()) errs.email = 'E-posta zorunludur';
+    else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Geçersiz e-posta';
+    if (!form.firstName.trim()) errs.firstName = 'Ad zorunludur';
+    if (!form.lastName.trim()) errs.lastName = 'Soyad zorunludur';
+    if (!form.password.trim()) errs.password = 'Şifre zorunludur';
     else if (form.password.length < 8)
-      errs.password = 'Min. 8 characters';
+      errs.password = 'En az 8 karakter';
     return errs;
   }
 
@@ -81,9 +92,9 @@ export function EmployeeListPage() {
     <div className="p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Employees</h1>
+          <h1 className="text-xl font-semibold text-slate-900">Çalışanlar</h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Manage staff accounts and permissions
+            Personel hesapları ve izinlerini yönet
           </p>
         </div>
         <Button
@@ -92,7 +103,7 @@ export function EmployeeListPage() {
           onClick={() => setShowCreate(true)}
         >
           <Plus size={16} />
-          Add Employee
+          Çalışan Ekle
         </Button>
       </div>
 
@@ -107,19 +118,19 @@ export function EmployeeListPage() {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  Name
+                  Ad Soyad
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  Email
+                  E-posta
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  Role
+                  Rol
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  Status
+                  Durum
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  Permissions
+                  İzinler
                 </th>
                 <th className="px-4 py-3" />
               </tr>
@@ -131,7 +142,7 @@ export function EmployeeListPage() {
                     colSpan={6}
                     className="text-center py-10 text-slate-400 text-sm"
                   >
-                    No employees yet. Add your first team member.
+                    Henüz çalışan yok. İlk ekip üyenizi ekleyin.
                   </td>
                 </tr>
               )}
@@ -163,24 +174,34 @@ export function EmployeeListPage() {
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant={emp.isActive ? 'success' : 'neutral'}>
-                      {emp.isActive ? 'Active' : 'Inactive'}
+                      {emp.isActive ? 'Aktif' : 'Pasif'}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-slate-500 text-xs">
                     {emp.role === 'Owner'
-                      ? 'All permissions'
-                      : `${emp.permissions.length} permissions`}
+                      ? 'Tüm izinler'
+                      : `${emp.permissions.length} izin`}
                   </td>
                   <td className="px-4 py-3">
                     {emp.role === 'Employee' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPermissionsEmployee(emp)}
-                      >
-                        <Settings size={14} />
-                        Permissions
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPermissionsEmployee(emp)}
+                        >
+                          <Settings size={14} />
+                          İzinler
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteEmployee(emp)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -194,55 +215,55 @@ export function EmployeeListPage() {
       <Modal
         isOpen={showCreate}
         onClose={closeCreate}
-        title="Add Employee"
+        title="Çalışan Ekle"
         size="md"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="First Name"
+              label="Ad"
               value={form.firstName}
               onChange={(e) => {
                 setForm((p) => ({ ...p, firstName: e.target.value }));
                 setErrors((p) => ({ ...p, firstName: undefined }));
               }}
-              placeholder="John"
+              placeholder="Ali"
               error={errors.firstName}
               required
             />
             <Input
-              label="Last Name"
+              label="Soyad"
               value={form.lastName}
               onChange={(e) => {
                 setForm((p) => ({ ...p, lastName: e.target.value }));
                 setErrors((p) => ({ ...p, lastName: undefined }));
               }}
-              placeholder="Doe"
+              placeholder="Yılmaz"
               error={errors.lastName}
               required
             />
           </div>
           <Input
-            label="Email"
+            label="E-posta"
             type="email"
             value={form.email}
             onChange={(e) => {
               setForm((p) => ({ ...p, email: e.target.value }));
               setErrors((p) => ({ ...p, email: undefined }));
             }}
-            placeholder="employee@restaurant.com"
+            placeholder="calisan@restoran.com"
             error={errors.email}
             required
           />
           <Input
-            label="Password"
+            label="Şifre"
             type="password"
             value={form.password}
             onChange={(e) => {
               setForm((p) => ({ ...p, password: e.target.value }));
               setErrors((p) => ({ ...p, password: undefined }));
             }}
-            placeholder="Min. 8 characters"
+            placeholder="En az 8 karakter"
             error={errors.password}
             required
           />
@@ -253,14 +274,14 @@ export function EmployeeListPage() {
               onClick={closeCreate}
               disabled={createMutation.isPending}
             >
-              Cancel
+              İptal
             </Button>
             <Button
               type="submit"
               variant="primary"
               isLoading={createMutation.isPending}
             >
-              Create Employee
+              Oluştur
             </Button>
           </div>
         </form>
@@ -272,6 +293,40 @@ export function EmployeeListPage() {
         isOpen={!!permissionsEmployee}
         onClose={() => setPermissionsEmployee(null)}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!deleteEmployee}
+        onClose={() => setDeleteEmployee(null)}
+        title="Çalışanı Sil"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            <span className="font-semibold">
+              {deleteEmployee?.firstName} {deleteEmployee?.lastName}
+            </span>{' '}
+            adlı çalışanı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => setDeleteEmployee(null)}
+              disabled={deleteMutation.isPending}
+            >
+              İptal
+            </Button>
+            <Button
+              variant="primary"
+              isLoading={deleteMutation.isPending}
+              onClick={() => deleteEmployee && deleteMutation.mutate(deleteEmployee.id)}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-500"
+            >
+              Sil
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

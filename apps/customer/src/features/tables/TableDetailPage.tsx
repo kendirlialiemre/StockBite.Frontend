@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orderService, menuService } from '@stockbite/api-client';
 import { Spinner } from '@stockbite/ui';
 import type { OrderItemDto } from '@stockbite/api-client';
-import { ArrowLeft, Plus, Trash2, X, Search, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, X, Search, ChevronRight, Banknote, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 function useElapsed(openedAt: string) {
@@ -70,7 +70,7 @@ export function TableDetailPage() {
   });
 
   const closeMutation = useMutation({
-    mutationFn: () => orderService.closeOrder(order!.id),
+    mutationFn: (paymentMethod: 0 | 1) => orderService.closeOrder(order!.id, paymentMethod),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['active-tables'] });
       toast.success('Masa kapatıldı. Tutar günsonu cirosuna eklendi.');
@@ -250,32 +250,36 @@ export function TableDetailPage() {
         </div>
       )}
 
-      {/* Confirm Close Modal */}
+      {/* Payment Method Modal */}
       {showConfirmClose && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <h2 className="font-bold text-slate-900 text-lg mb-2">Masayı Kapat</h2>
-            <p className="text-slate-500 text-sm mb-1">
-              <strong>{order.tableName}</strong> masası kapatılacak.
-            </p>
-            <div className="bg-violet-50 rounded-xl px-4 py-3 mb-5">
-              <p className="text-xs text-violet-500 font-medium">Toplam Tutar</p>
-              <p className="text-2xl font-black text-violet-700">₺{order.totalAmount.toFixed(2)}</p>
-              <p className="text-xs text-violet-400 mt-1">Günsonu cirosuna eklenecek.</p>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold text-slate-900 text-lg">Ödeme Yöntemi</h2>
+              <button onClick={() => setShowConfirmClose(false)} className="text-slate-400 hover:text-slate-700">
+                <X size={20} />
+              </button>
             </div>
-            <div className="flex gap-2">
+            <div className="bg-violet-50 rounded-xl px-4 py-3 mb-5">
+              <p className="text-xs text-violet-500 font-medium">{order.tableName} • Toplam Tutar</p>
+              <p className="text-2xl font-black text-violet-700">₺{order.totalAmount.toFixed(2)}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => setShowConfirmClose(false)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                onClick={() => { setShowConfirmClose(false); closeMutation.mutate(0); }}
+                disabled={closeMutation.isPending}
+                className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-slate-200 hover:border-green-500 hover:bg-green-50 transition-all disabled:opacity-50"
               >
-                Geri
+                <Banknote size={32} className="text-green-600" />
+                <span className="font-bold text-slate-800">Nakit</span>
               </button>
               <button
-                onClick={() => { setShowConfirmClose(false); closeMutation.mutate(); }}
+                onClick={() => { setShowConfirmClose(false); closeMutation.mutate(1); }}
                 disabled={closeMutation.isPending}
-                className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold transition-colors disabled:opacity-60"
+                className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all disabled:opacity-50"
               >
-                {closeMutation.isPending ? 'Kapatılıyor…' : 'Onayla'}
+                <CreditCard size={32} className="text-blue-600" />
+                <span className="font-bold text-slate-800">Kart</span>
               </button>
             </div>
           </div>

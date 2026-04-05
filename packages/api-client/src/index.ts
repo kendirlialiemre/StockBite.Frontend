@@ -5,7 +5,7 @@ export { apiClient, setAuthTokens, clearAuthTokens } from './client';
 export { Permissions, ModuleType } from './constants/permissions';
 
 // Types
-export type { LoginRequest, LoginResponse, UserDto, RefreshTokenRequest } from './types/auth';
+export type { LoginRequest, LoginResponse, UserDto, RefreshTokenRequest, UpdateProfileRequest } from './types/auth';
 export type {
   TenantDto,
   CreateTenantRequest,

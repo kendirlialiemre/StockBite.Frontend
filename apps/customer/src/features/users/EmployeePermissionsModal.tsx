@@ -20,38 +20,46 @@ interface PermissionGroup {
 
 const PERMISSION_GROUPS: PermissionGroup[] = [
   {
-    label: 'Menu',
+    label: 'Menü',
     moduleId: ModuleType.Menu,
     permissions: [
-      { key: Permissions.Menu.View, label: 'View Menu' },
-      { key: Permissions.Menu.Edit, label: 'Edit Menu' },
+      { key: Permissions.Menu.View, label: 'Menüyü Görüntüle' },
+      { key: Permissions.Menu.Edit, label: 'Menüyü Düzenle' },
     ],
   },
   {
-    label: 'Orders',
+    label: 'Siparişler',
     moduleId: ModuleType.Orders,
     permissions: [
-      { key: Permissions.Orders.View, label: 'View Orders' },
-      { key: Permissions.Orders.Create, label: 'Create Orders' },
-      { key: Permissions.Orders.Close, label: 'Close Orders' },
-      { key: Permissions.Orders.Cancel, label: 'Cancel Orders' },
+      { key: Permissions.Orders.View, label: 'Siparişleri Görüntüle' },
+      { key: Permissions.Orders.Create, label: 'Sipariş Oluştur' },
+      { key: Permissions.Orders.Close, label: 'Sipariş Kapat' },
+      { key: Permissions.Orders.Cancel, label: 'Sipariş İptal Et' },
     ],
   },
   {
-    label: 'Stock',
+    label: 'Stok',
     moduleId: ModuleType.Stock,
     permissions: [
-      { key: Permissions.Stock.View, label: 'View Stock' },
-      { key: Permissions.Stock.AddItem, label: 'Add Stock Items' },
-      { key: Permissions.Stock.EditItem, label: 'Edit Stock Items' },
-      { key: Permissions.Stock.AddMovement, label: 'Add Stock Movements' },
+      { key: Permissions.Stock.View, label: 'Stoku Görüntüle' },
+      { key: Permissions.Stock.AddItem, label: 'Stok Kalemi Ekle' },
+      { key: Permissions.Stock.EditItem, label: 'Stok Kalemini Düzenle' },
+      { key: Permissions.Stock.AddMovement, label: 'Stok Hareketi Ekle' },
     ],
   },
   {
-    label: 'Reports',
+    label: 'Masa Yönetimi',
+    moduleId: ModuleType.Tables,
+    permissions: [
+      { key: Permissions.Tables.View, label: 'Masaları Görüntüle' },
+      { key: Permissions.Tables.Manage, label: 'Masa Yönet / Ödeme Al' },
+    ],
+  },
+  {
+    label: 'Raporlar',
     moduleId: ModuleType.ProfitLoss,
     permissions: [
-      { key: Permissions.ProfitLoss.View, label: 'View Profit & Loss' },
+      { key: Permissions.ProfitLoss.View, label: 'Kâr/Zarar Görüntüle' },
     ],
   },
 ];
@@ -78,10 +86,10 @@ export function EmployeePermissionsModal({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users', 'employees'] });
-      toast.success('Permissions updated');
+      toast.success('İzinler güncellendi');
       onClose();
     },
-    onError: () => toast.error('Failed to update permissions'),
+    onError: () => toast.error('İzinler güncellenemedi'),
   });
 
   function togglePermission(key: string) {
@@ -117,13 +125,13 @@ export function EmployeePermissionsModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Permissions: ${employee?.firstName} ${employee?.lastName}`}
+      title={`İzinler: ${employee?.firstName} ${employee?.lastName}`}
       size="md"
     >
       <div className="space-y-4">
         {visibleGroups.length === 0 && (
           <p className="text-sm text-slate-500 text-center py-4">
-            No modules are subscribed. Contact your administrator.
+            Abone olunan modül yok. Yöneticinize başvurun.
           </p>
         )}
 
@@ -192,14 +200,14 @@ export function EmployeePermissionsModal({
             onClick={onClose}
             disabled={mutation.isPending}
           >
-            Cancel
+            İptal
           </Button>
           <Button
             variant="primary"
             isLoading={mutation.isPending}
             onClick={() => mutation.mutate()}
           >
-            Save Permissions
+            Kaydet
           </Button>
         </div>
       </div>

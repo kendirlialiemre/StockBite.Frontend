@@ -4,7 +4,7 @@ import { orderService, menuService } from '@stockbite/api-client';
 import { Spinner } from '@stockbite/ui';
 import type { TableWithOrderDto, OrderItemDto } from '@stockbite/api-client';
 import {
-  Plus, UtensilsCrossed, X, Search, Trash2, ChevronRight, Timer,
+  Plus, UtensilsCrossed, X, Search, Trash2, ChevronRight, Timer, Banknote, CreditCard,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -132,7 +132,7 @@ function TableDetailModal({
   });
 
   const closeMutation = useMutation({
-    mutationFn: () => orderService.closeOrder(order!.id),
+    mutationFn: (paymentMethod: 0 | 1) => orderService.closeOrder(order!.id, paymentMethod),
     onSuccess: () => {
       onUpdated();
       toast.success('Ödeme alındı. Masa kapatıldı.');
@@ -368,29 +368,36 @@ function TableDetailModal({
         </>
       )}
 
-      {/* Confirm Close */}
+      {/* Payment Method Modal */}
       {showConfirmClose && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs p-6">
-            <h3 className="font-bold text-slate-900 text-base mb-2">Ödemeyi Onayla</h3>
-            <p className="text-sm text-slate-500 mb-1"><strong>{table.name}</strong> masası kapatılacak.</p>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-900 text-base">Ödeme Yöntemi</h3>
+              <button onClick={() => setShowConfirmClose(false)} className="text-slate-400 hover:text-slate-700">
+                <X size={18} />
+              </button>
+            </div>
             <div className="bg-emerald-50 rounded-xl px-4 py-3 mb-5">
-              <p className="text-xs text-emerald-600 font-medium">Toplam Tutar</p>
+              <p className="text-xs text-emerald-600 font-medium">{table.name} • Toplam Tutar</p>
               <p className="text-2xl font-black text-emerald-700">₺{(order?.totalAmount ?? 0).toFixed(2)}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => setShowConfirmClose(false)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                onClick={() => { setShowConfirmClose(false); closeMutation.mutate(0); }}
+                disabled={closeMutation.isPending}
+                className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-slate-200 hover:border-green-500 hover:bg-green-50 transition-all disabled:opacity-50"
               >
-                Geri
+                <Banknote size={28} className="text-green-600" />
+                <span className="font-bold text-slate-800 text-sm">Nakit</span>
               </button>
               <button
-                onClick={() => { setShowConfirmClose(false); closeMutation.mutate(); }}
+                onClick={() => { setShowConfirmClose(false); closeMutation.mutate(1); }}
                 disabled={closeMutation.isPending}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold disabled:opacity-60"
+                className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all disabled:opacity-50"
               >
-                {closeMutation.isPending ? 'İşleniyor…' : 'Onayla'}
+                <CreditCard size={28} className="text-blue-600" />
+                <span className="font-bold text-slate-800 text-sm">Kart</span>
               </button>
             </div>
           </div>

@@ -33,6 +33,7 @@ export interface OrderDto {
   openedAt: string;
   closedAt: string | null;
   totalAmount: number;
+  paymentMethod: 0 | 1 | null;
   items: OrderItemDto[];
 }
 

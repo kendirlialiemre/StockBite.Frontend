@@ -47,10 +47,10 @@ export function NewOrderPage() {
       return order;
     },
     onSuccess: (order) => {
-      toast.success('Order created!');
+      toast.success('Sipariş oluşturuldu!');
       navigate(`/orders/${order.id}`);
     },
-    onError: () => toast.error('Failed to create order'),
+    onError: () => toast.error('Sipariş oluşturulamadı'),
   });
 
   function addToCart(item: MenuItemDto) {
@@ -109,10 +109,10 @@ export function NewOrderPage() {
           className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors"
         >
           <ArrowLeft size={16} />
-          Back
+          Geri
         </button>
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">New Order</h1>
+          <h1 className="text-xl font-semibold text-slate-900">Yeni Sipariş</h1>
         </div>
       </div>
 
@@ -120,10 +120,10 @@ export function NewOrderPage() {
       {!selectedTable ? (
         <div className="space-y-3">
           <h2 className="text-base font-medium text-slate-900">
-            Select a Table
+            Masa Seç
           </h2>
           {tables?.length === 0 && (
-            <p className="text-sm text-slate-400">No tables configured.</p>
+            <p className="text-sm text-slate-400">Masa bulunamadı.</p>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {tables?.filter((t) => t.isActive).map((table) => (
@@ -136,16 +136,16 @@ export function NewOrderPage() {
                   {table.name}
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {table.capacity} seats
+                  {table.capacity} kişilik
                 </p>
               </button>
             ))}
             <button
-              onClick={() => setSelectedTable({ id: '', name: 'Takeaway', capacity: 0, isActive: true })}
+              onClick={() => setSelectedTable({ id: '', name: 'Paket', capacity: 0, isActive: true })}
               className="bg-white border border-dashed border-slate-300 rounded-lg p-5 text-center hover:border-emerald-400 transition-all"
             >
-              <p className="font-semibold text-slate-900 text-base">Takeaway</p>
-              <p className="text-xs text-slate-500 mt-0.5">No table</p>
+              <p className="font-semibold text-slate-900 text-base">Paket</p>
+              <p className="text-xs text-slate-500 mt-0.5">Masasız</p>
             </button>
           </div>
         </div>
@@ -155,13 +155,13 @@ export function NewOrderPage() {
           <div className="flex-1 space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-medium text-slate-900">
-                Table: {selectedTable.name}
+                Masa: {selectedTable.name}
               </h2>
               <button
                 onClick={() => setSelectedTable(null)}
                 className="text-sm text-slate-400 hover:text-slate-700 underline"
               >
-                Change table
+                Masayı değiştir
               </button>
             </div>
 
@@ -190,7 +190,7 @@ export function NewOrderPage() {
                                   {item.name}
                                 </p>
                                 <p className="text-xs text-slate-500">
-                                  ${item.price.toFixed(2)}
+                                  ₺{item.price.toFixed(2)}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
@@ -225,7 +225,7 @@ export function NewOrderPage() {
                 {uncategorized.length > 0 && (
                   <div>
                     <h3 className="text-sm font-semibold text-slate-700 mb-2">
-                      Other
+                      Diğer
                     </h3>
                     <div className="space-y-2">
                       {uncategorized.map((item) => {
@@ -280,13 +280,13 @@ export function NewOrderPage() {
               <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
                 <ShoppingCart size={16} className="text-slate-500" />
                 <h3 className="text-sm font-semibold text-slate-900">
-                  Order Summary
+                  Sipariş Özeti
                 </h3>
               </div>
               <div className="px-4 py-3 space-y-2 max-h-80 overflow-y-auto">
                 {cart.length === 0 && (
                   <p className="text-sm text-slate-400 text-center py-4">
-                    No items added yet
+                    Henüz ürün eklenmedi
                   </p>
                 )}
                 {cart.map((ci) => (
@@ -308,8 +308,8 @@ export function NewOrderPage() {
               </div>
               <div className="px-4 py-3 border-t border-slate-100">
                 <div className="flex justify-between text-sm font-semibold text-slate-900 mb-3">
-                  <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>Toplam</span>
+                  <span>₺{total.toFixed(2)}</span>
                 </div>
                 <Button
                   variant="primary"
@@ -319,7 +319,7 @@ export function NewOrderPage() {
                   isLoading={createOrderMutation.isPending}
                   onClick={() => createOrderMutation.mutate()}
                 >
-                  Create Order
+                  Sipariş Oluştur
                 </Button>
               </div>
             </div>

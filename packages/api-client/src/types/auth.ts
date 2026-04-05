@@ -22,3 +22,10 @@ export interface UserDto {
 export interface RefreshTokenRequest {
   refreshToken: string;
 }
+
+export interface UpdateProfileRequest {
+  firstName: string;
+  lastName: string;
+  currentPassword?: string;
+  newPassword?: string;
+}

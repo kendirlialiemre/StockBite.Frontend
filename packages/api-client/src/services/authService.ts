@@ -4,6 +4,7 @@ import type {
   LoginResponse,
   RefreshTokenRequest,
   UserDto,
+  UpdateProfileRequest,
 } from '../types/auth';
 
 export const authService = {
@@ -36,5 +37,9 @@ export const authService = {
   async getMyModules(): Promise<number[]> {
     const { data } = await apiClient.get<number[]>('/me/modules');
     return data;
+  },
+
+  async updateProfile(req: UpdateProfileRequest): Promise<void> {
+    await apiClient.patch('/me/profile', req);
   },
 };

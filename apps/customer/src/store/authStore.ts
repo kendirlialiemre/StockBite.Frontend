@@ -15,6 +15,7 @@ interface AuthState {
     subscribedModules: number[]
   ) => void;
   logout: () => void;
+  updateUser: (patch: Partial<Pick<UserDto, 'firstName' | 'lastName'>>) => void;
   setSubscribedModules: (modules: number[]) => void;
   hasModule: (moduleId: number) => boolean;
   hasPermission: (permission: string) => boolean;
@@ -47,6 +48,11 @@ export const useAuthStore = create<AuthState>()(
           permissions: [],
         });
       },
+
+      updateUser: (patch) =>
+        set((state) =>
+          state.user ? { user: { ...state.user, ...patch } } : {}
+        ),
 
       setSubscribedModules: (modules) => set({ subscribedModules: modules }),
 

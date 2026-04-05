@@ -7,15 +7,12 @@ import type {
 
 export const userService = {
   async getEmployees(): Promise<EmployeeDto[]> {
-    const { data } = await apiClient.get<EmployeeDto[]>('/users/employees');
+    const { data } = await apiClient.get<EmployeeDto[]>('/users');
     return data;
   },
 
   async createEmployee(req: CreateEmployeeRequest): Promise<EmployeeDto> {
-    const { data } = await apiClient.post<EmployeeDto>(
-      '/users/employees',
-      req
-    );
+    const { data } = await apiClient.post<EmployeeDto>('/users', req);
     return data;
   },
 
@@ -46,5 +43,9 @@ export const userService = {
       req
     );
     return data;
+  },
+
+  async deleteEmployee(userId: string): Promise<void> {
+    await apiClient.delete(`/users/${userId}`);
   },
 };
