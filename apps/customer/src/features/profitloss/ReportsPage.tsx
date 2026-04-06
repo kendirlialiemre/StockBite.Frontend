@@ -86,7 +86,7 @@ export function ReportsPage() {
               { label: 'Toplam Gelir', value: fmt(report.totalRevenue), icon: <TrendingUp size={18} className="text-indigo-600" />, bg: 'bg-indigo-100', text: 'text-slate-900' },
               { label: 'Stok Alım Gideri', value: `-${fmt(report.stockPurchaseCost)}`, icon: <Package size={18} className="text-orange-600" />, bg: 'bg-orange-100', text: 'text-slate-900' },
               { label: 'Malzeme Maliyeti', value: `-${fmt(report.totalCost)}`, icon: <TrendingDown size={18} className="text-red-500" />, bg: 'bg-red-100', text: 'text-slate-900' },
-              { label: 'Diğer Giderler', value: `-${fmt(report.otherExpenses)}`, icon: <TrendingDown size={18} className="text-pink-500" />, bg: 'bg-pink-100', text: 'text-slate-900' },
+              { label: 'Diğer Giderler', value: `-${fmt(report.otherExpenses ?? 0)}`, icon: <TrendingDown size={18} className="text-pink-500" />, bg: 'bg-pink-100', text: 'text-slate-900' },
             ].map(({ label, value, icon, bg, text }) => (
               <div key={label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4">
                 <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center mb-2`}>{icon}</div>
