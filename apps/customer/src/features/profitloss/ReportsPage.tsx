@@ -45,7 +45,7 @@ export function ReportsPage() {
   }));
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-slate-900">Kâr / Zarar Raporu</h1>
         <p className="text-sm text-slate-500 mt-0.5">Günlük gelir, gider ve kâr analizi</p>
@@ -79,52 +79,29 @@ export function ReportsPage() {
       {!isLoading && !isError && report && (
         <>
           {/* Summary cards */}
-          <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
-              <div className="p-3 bg-green-100 rounded-lg"><Banknote size={20} className="text-green-600" /></div>
-              <div>
-                <p className="text-xs text-slate-500">Nakit Gelir</p>
-                <p className="text-xl font-bold text-slate-900">{fmt(report.cashRevenue)}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { label: 'Nakit Gelir', value: fmt(report.cashRevenue), icon: <Banknote size={18} className="text-green-600" />, bg: 'bg-green-100', text: 'text-slate-900' },
+              { label: 'Kart Gelir', value: fmt(report.cardRevenue), icon: <CreditCard size={18} className="text-blue-600" />, bg: 'bg-blue-100', text: 'text-slate-900' },
+              { label: 'Toplam Gelir', value: fmt(report.totalRevenue), icon: <TrendingUp size={18} className="text-indigo-600" />, bg: 'bg-indigo-100', text: 'text-slate-900' },
+              { label: 'Stok Alım Gideri', value: `-${fmt(report.stockPurchaseCost)}`, icon: <Package size={18} className="text-orange-600" />, bg: 'bg-orange-100', text: 'text-slate-900' },
+              { label: 'Malzeme Maliyeti', value: `-${fmt(report.totalCost)}`, icon: <TrendingDown size={18} className="text-red-500" />, bg: 'bg-red-100', text: 'text-slate-900' },
+              { label: 'Diğer Giderler', value: `-${fmt(report.otherExpenses)}`, icon: <TrendingDown size={18} className="text-pink-500" />, bg: 'bg-pink-100', text: 'text-slate-900' },
+            ].map(({ label, value, icon, bg, text }) => (
+              <div key={label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4">
+                <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center mb-2`}>{icon}</div>
+                <p className="text-xs text-slate-500 leading-tight">{label}</p>
+                <p className={`text-base sm:text-lg font-bold ${text} mt-0.5 break-all`}>{value}</p>
               </div>
-            </div>
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg"><CreditCard size={20} className="text-blue-600" /></div>
-              <div>
-                <p className="text-xs text-slate-500">Kart Gelir</p>
-                <p className="text-xl font-bold text-slate-900">{fmt(report.cardRevenue)}</p>
+            ))}
+            <div className={`rounded-xl border shadow-sm p-3 sm:p-4 ${report.grossProfit >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${report.grossProfit >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                <ShoppingCart size={18} className={report.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-600'} />
               </div>
-            </div>
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
-              <div className="p-3 bg-indigo-100 rounded-lg"><TrendingUp size={20} className="text-indigo-600" /></div>
-              <div>
-                <p className="text-xs text-slate-500">Toplam Gelir</p>
-                <p className="text-xl font-bold text-slate-900">{fmt(report.totalRevenue)}</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
-              <div className="p-3 bg-orange-100 rounded-lg"><Package size={20} className="text-orange-600" /></div>
-              <div>
-                <p className="text-xs text-slate-500">Stok Alım Gideri</p>
-                <p className="text-xl font-bold text-slate-900">-{fmt(report.stockPurchaseCost)}</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
-              <div className="p-3 bg-red-100 rounded-lg"><TrendingDown size={20} className="text-red-500" /></div>
-              <div>
-                <p className="text-xs text-slate-500">Malzeme Maliyeti</p>
-                <p className="text-xl font-bold text-slate-900">-{fmt(report.totalCost)}</p>
-              </div>
-            </div>
-            <div className={`rounded-xl border shadow-sm p-5 flex items-center gap-4 ${report.grossProfit >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
-              <div className={`p-3 rounded-lg ${report.grossProfit >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
-                <ShoppingCart size={20} className={report.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-600'} />
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Net Kâr</p>
-                <p className={`text-xl font-bold ${report.grossProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                  {report.grossProfit >= 0 ? '+' : ''}{fmt(report.grossProfit)}
-                </p>
-              </div>
+              <p className="text-xs text-slate-500 leading-tight">Net Kâr</p>
+              <p className={`text-base sm:text-lg font-bold mt-0.5 break-all ${report.grossProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                {report.grossProfit >= 0 ? '+' : ''}{fmt(report.grossProfit)}
+              </p>
             </div>
           </div>
 
@@ -159,7 +136,7 @@ export function ReportsPage() {
               <h3 className="text-base font-semibold text-slate-900">Günlük Detay</h3>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[700px] text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Tarih</th>
@@ -168,6 +145,7 @@ export function ReportsPage() {
                     <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500">Toplam Gelir</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-orange-600">Stok Alım</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-red-500">Malzeme</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-pink-500">Giderler</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-emerald-600">Net Kâr</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500">Sipariş</th>
                   </tr>
@@ -188,6 +166,7 @@ export function ReportsPage() {
                       <td className="px-4 py-2.5 text-right text-slate-900">{fmt(day.totalRevenue)}</td>
                       <td className="px-4 py-2.5 text-right text-orange-600">-{fmt(day.stockPurchaseCost)}</td>
                       <td className="px-4 py-2.5 text-right text-red-500">-{fmt(day.totalCost)}</td>
+                      <td className="px-4 py-2.5 text-right text-pink-500">-{fmt(day.otherExpenses)}</td>
                       <td className={`px-4 py-2.5 text-right font-semibold ${day.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                         {day.grossProfit >= 0 ? '+' : ''}{fmt(day.grossProfit)}
                       </td>

@@ -95,7 +95,7 @@ export function DashboardPage() {
   const cardShare = totalRevenue > 0 ? (daily?.cardRevenue ?? 0) / totalRevenue : 0;
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl">
+    <div className="p-3 sm:p-6 space-y-6 max-w-6xl">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

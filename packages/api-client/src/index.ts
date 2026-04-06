@@ -43,6 +43,8 @@ export type {
   CreateEmployeeRequest,
   UpdatePermissionsRequest,
 } from './types/user';
+export type { ExpenseDto, CreateExpenseRequest } from './types/expense';
+export { EXPENSE_CATEGORIES } from './types/expense';
 
 // Services
 export { authService } from './services/authService';
@@ -52,3 +54,4 @@ export { orderService } from './services/orderService';
 export { stockService } from './services/stockService';
 export { profitLossService } from './services/profitLossService';
 export { userService } from './services/userService';
+export { expenseService } from './services/expenseService';

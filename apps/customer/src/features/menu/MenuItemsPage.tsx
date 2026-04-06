@@ -7,7 +7,7 @@ import type { CreateMenuItemRequest, UpdateMenuItemRequest, IngredientRequest } 
 import { Button, Badge, Spinner, Modal, Input } from '@stockbite/ui';
 import { Breadcrumb } from '../../components/ui/Breadcrumb';
 
-const API_BASE = 'http://localhost:5000';
+
 
 type FormState = {
   name: string;
@@ -40,6 +40,7 @@ export function MenuItemsPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deleteItem, setDeleteItem] = useState<{ id: string; name: string } | null>(null);
 
   const { data: categories } = useQuery({
     queryKey: ['menu', 'categories'],
@@ -84,6 +85,16 @@ export function MenuItemsPage() {
       menuService.toggleItemAvailability(id, isAvailable),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['menu', 'items'] }),
     onError: () => toast.error('Durum güncellenemedi.'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => menuService.deleteItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['menu', 'items'] });
+      toast.success('Ürün silindi.');
+      setDeleteItem(null);
+    },
+    onError: () => toast.error('Ürün silinemedi.'),
   });
 
   async function uploadImage(itemId: string, file: File) {
@@ -136,7 +147,7 @@ export function MenuItemsPage() {
       }))
     );
     setErrors({});
-    setImagePreview(item.imageUrl ? `${API_BASE}${item.imageUrl}` : null);
+    setImagePreview(item.imageUrl ?? null);
     setImageFile(null);
     setShowModal(true);
   }
@@ -218,12 +229,12 @@ export function MenuItemsPage() {
   const estimatedProfit = estimatedCost !== null && form.price ? Number(form.price) - estimatedCost : null;
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-3 sm:p-6 space-y-5">
       <Breadcrumb items={[
         { label: 'Menü Yönetimi', to: '/menu' },
         { label: 'Ürünler' },
       ]} />
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Menü Ürünleri</h1>
           <p className="text-sm text-slate-500 mt-0.5">Yemek ve içecekleri yönetin.</p>
@@ -259,7 +270,8 @@ export function MenuItemsPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         {isLoading && <div className="flex items-center justify-center py-16"><Spinner /></div>}
         {!isLoading && (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[680px] text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide w-12" />
@@ -284,7 +296,7 @@ export function MenuItemsPage() {
                   <td className="px-4 py-3">
                     {item.imageUrl ? (
                       <img
-                        src={`${API_BASE}${item.imageUrl}`}
+                        src={item.imageUrl!}
                         alt={item.name}
                         className="w-10 h-10 rounded-xl object-cover border border-slate-100"
                       />
@@ -344,14 +356,42 @@ export function MenuItemsPage() {
                       >
                         <Pencil size={14} />
                       </button>
+                      <button
+                        onClick={() => setDeleteItem({ id: item.id, name: item.name })}
+                        className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
+
+      <Modal isOpen={!!deleteItem} onClose={() => setDeleteItem(null)} title="Ürünü Sil" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            <span className="font-semibold">{deleteItem?.name}</span> ürününü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setDeleteItem(null)} disabled={deleteMutation.isPending}>
+              İptal
+            </Button>
+            <Button
+              variant="primary"
+              isLoading={deleteMutation.isPending}
+              onClick={() => deleteItem && deleteMutation.mutate(deleteItem.id)}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-500"
+            >
+              Sil
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal isOpen={showModal} onClose={closeModal} title={editId ? 'Ürünü Düzenle' : 'Yeni Ürün'} size="md">
         <form onSubmit={handleSubmit} className="space-y-4">

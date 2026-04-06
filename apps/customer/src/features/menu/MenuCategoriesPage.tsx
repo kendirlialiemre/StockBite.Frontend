@@ -100,7 +100,7 @@ export function MenuCategoriesPage() {
         { label: 'Menü Yönetimi', to: '/menu' },
         { label: 'Kategoriler' },
       ]} />
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Kategoriler</h1>
           <p className="text-sm text-slate-500 mt-0.5">Menünüzü kategorilerle düzenleyin.</p>

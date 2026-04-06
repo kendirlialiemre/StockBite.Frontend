@@ -16,6 +16,7 @@ import {
   QrCode,
   TableProperties,
   Receipt,
+  Wallet,
 } from 'lucide-react';
 import { ModuleType } from '@stockbite/api-client';
 import { authService } from '@stockbite/api-client';
@@ -37,6 +38,7 @@ const mainNav: NavItem[] = [
   { to: '/orders', label: 'Satış (POS)', icon: <ShoppingCart size={18} />, moduleId: ModuleType.Orders },
   { to: '/stock', label: 'Stok & Envanter', icon: <Package size={18} />, moduleId: ModuleType.Stock },
   { to: '/reports', label: 'Kar / Zarar', icon: <TrendingUp size={18} />, moduleId: ModuleType.ProfitLoss },
+  { to: '/expenses', label: 'Giderler', icon: <Wallet size={18} />, moduleId: ModuleType.ProfitLoss },
   { to: '/store', label: 'Mağaza', icon: <Store size={18} /> },
   { to: '/menu/qr', label: 'QR Menü', icon: <QrCode size={18} />, moduleId: ModuleType.Menu },
   { to: '/tables', label: 'Masa Yönetimi', icon: <TableProperties size={18} />, moduleId: ModuleType.Tables },

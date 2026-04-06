@@ -126,8 +126,8 @@ export function StockItemsPage() {
   }
 
   return (
-    <div className="p-6 space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="p-3 sm:p-6 space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">Stok Kalemleri</h1>
           <p className="text-sm text-slate-500 mt-0.5">
@@ -157,7 +157,8 @@ export function StockItemsPage() {
           </div>
         )}
         {!isLoading && (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[600px] text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
@@ -239,6 +240,7 @@ export function StockItemsPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

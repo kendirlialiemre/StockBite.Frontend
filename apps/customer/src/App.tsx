@@ -28,6 +28,7 @@ import { PaymentFailedPage } from './features/store/PaymentFailedPage';
 import { TablesPage } from './features/tables/TablesPage';
 import { TableDetailPage } from './features/tables/TableDetailPage';
 import { MySubscriptionsPage } from './features/store/MySubscriptionsPage';
+import { ExpensesPage } from './features/expenses/ExpensesPage';
 import { ModuleType, Permissions } from '@stockbite/api-client';
 
 export default function App() {
@@ -132,6 +133,14 @@ export default function App() {
               <PermissionGuard permission={Permissions.ProfitLoss.View}>
                 <ReportsPage />
               </PermissionGuard>
+            </ModuleGuard>
+          }
+        />
+        <Route
+          path="expenses"
+          element={
+            <ModuleGuard moduleId={ModuleType.ProfitLoss}>
+              <ExpensesPage />
             </ModuleGuard>
           }
         />

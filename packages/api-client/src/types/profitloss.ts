@@ -5,6 +5,7 @@ export interface DailySummaryDto {
   cardRevenue: number;
   totalCost: number;
   stockPurchaseCost: number;
+  otherExpenses: number;
   grossProfit: number;
   orderCount: number;
 }
@@ -17,6 +18,7 @@ export interface ReportRangeDto {
   cardRevenue: number;
   totalCost: number;
   stockPurchaseCost: number;
+  otherExpenses: number;
   grossProfit: number;
   totalOrders: number;
   dailySummaries: DailySummaryDto[];
