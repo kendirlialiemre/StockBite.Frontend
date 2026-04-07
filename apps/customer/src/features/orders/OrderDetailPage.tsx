@@ -77,6 +77,18 @@ export function OrderDetailPage() {
 
   const isOpen = order.status === 0;
 
+  // Group items by menuItemId
+  const groupedItems = Object.values(
+    order.items.reduce<Record<string, { menuItemName: string; unitPrice: number; quantity: number; note?: string }>>((acc, item) => {
+      if (acc[item.menuItemId]) {
+        acc[item.menuItemId].quantity += item.quantity;
+      } else {
+        acc[item.menuItemId] = { menuItemName: item.menuItemName, unitPrice: item.unitPrice, quantity: item.quantity, note: item.note ?? undefined };
+      }
+      return acc;
+    }, {})
+  );
+
   return (
     <div className="p-6 space-y-5 max-w-2xl">
       <button
@@ -138,16 +150,16 @@ export function OrderDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {order.items.length === 0 && (
+              {groupedItems.length === 0 && (
                 <tr>
                   <td colSpan={4} className="text-center py-6 text-slate-400 text-sm">
                     Ürün yok
                   </td>
                 </tr>
               )}
-              {order.items.map((item, idx) => (
+              {groupedItems.map((item, idx) => (
                 <tr
-                  key={item.id}
+                  key={item.menuItemName}
                   className={`border-b border-slate-100 last:border-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}
                 >
                   <td className="px-4 py-2 font-medium text-slate-900">

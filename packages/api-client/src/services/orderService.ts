@@ -36,7 +36,7 @@ export const orderService = {
   },
 
   // Orders
-  async getOrders(params?: { status?: number; tableId?: string }): Promise<OrderDto[]> {
+  async getOrders(params?: { status?: number; tableId?: string; from?: string; to?: string }): Promise<OrderDto[]> {
     const { data } = await apiClient.get<OrderDto[]>('/orders', { params });
     return data;
   },

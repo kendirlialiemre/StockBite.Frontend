@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -17,11 +17,18 @@ import {
   TableProperties,
   Receipt,
   Wallet,
+  Timer,
+  X,
 } from 'lucide-react';
-import { ModuleType } from '@stockbite/api-client';
+import { useQuery } from '@tanstack/react-query';
+import { ModuleType, orderService } from '@stockbite/api-client';
 import { authService } from '@stockbite/api-client';
 import { useAuthStore } from '../../store/authStore';
 import { useCartStore } from '../../store/cartStore';
+import {
+  getTriggeredAlarms, removeAlarm, addNotification, readNotifications,
+  removeNotification, type FiredNotification,
+} from '../../hooks/useTableAlarms';
 import toast from 'react-hot-toast';
 
 interface NavItem {
@@ -55,6 +62,96 @@ export function CustomerShell() {
   const cartCount = useCartStore((s) => s.items.length);
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  const firedRef = useRef<Set<string>>(new Set());
+  const [notifications, setNotifications] = useState<FiredNotification[]>(readNotifications);
+
+  function dismiss(orderId: string) {
+    removeNotification(orderId);
+    setNotifications(readNotifications());
+  }
+
+  function playBell() {
+    try {
+      const ctx = new AudioContext();
+
+      // Her çan için birden fazla harmonik üretir — gerçekçi çan sesi
+      function strike(startTime: number) {
+        // Temel frekans + harmonikler (çan karakteristiği)
+        const partials: [number, number][] = [
+          [520, 0.5],   // temel
+          [780, 0.25],  // 3. harmonik
+          [1040, 0.15], // 2x
+          [1560, 0.08], // yüksek parlama
+          [2080, 0.04],
+        ];
+
+        const masterGain = ctx.createGain();
+        masterGain.gain.setValueAtTime(0, startTime);
+        masterGain.gain.linearRampToValueAtTime(0.35, startTime + 0.01); // hızlı attack
+        masterGain.gain.exponentialRampToValueAtTime(0.001, startTime + 2.2); // yavaş decay
+        masterGain.connect(ctx.destination);
+
+        partials.forEach(([freq, amp]) => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, startTime);
+          // Yüksek harmonikler daha hızlı söner
+          g.gain.setValueAtTime(amp, startTime);
+          g.gain.exponentialRampToValueAtTime(0.001, startTime + 1.5 / (freq / 520));
+          osc.connect(g);
+          g.connect(masterGain);
+          osc.start(startTime);
+          osc.stop(startTime + 2.5);
+        });
+      }
+
+      // İki vuruş — ding-dong
+      strike(ctx.currentTime);
+      strike(ctx.currentTime + 0.55);
+    } catch { /* ignore if audio not supported */ }
+  }
+
+  useQuery({
+    queryKey: ['active-tables'],
+    queryFn: () => orderService.getActiveTables(),
+    enabled: hasModule(ModuleType.Tables),
+    refetchInterval: 30000,
+  });
+
+  useEffect(() => {
+    function check() {
+      const triggered = getTriggeredAlarms();
+      triggered.forEach(alarm => {
+        const key = `${alarm.orderId}-${alarm.setAt}`;
+        if (firedRef.current.has(key)) return;
+        firedRef.current.add(key);
+        // Remove alarm, add notification
+        removeAlarm(alarm.orderId);
+        const notif: FiredNotification = { orderId: alarm.orderId, tableName: alarm.tableName, firedAt: Date.now() };
+        addNotification(notif);
+        setNotifications(readNotifications());
+        toast(`⏰ ${alarm.tableName} için alarm tetiklendi!`, { duration: 6000 });
+        playBell();
+      });
+    }
+    check();
+    const id = setInterval(check, 10000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    }
+    if (notifOpen) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [notifOpen]);
 
   useEffect(() => {
     authService.getMyModules().then(setSubscribedModules).catch(() => {});
@@ -201,9 +298,62 @@ export function CustomerShell() {
             </Link>
 
             {/* Notification bell */}
-            <button className="relative p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-colors">
-              <Bell size={20} />
-            </button>
+            <div ref={notifRef} className="relative">
+              <button
+                onClick={() => {
+                  if (notifOpen) {
+                    notifications.forEach(n => removeNotification(n.orderId));
+                    setNotifications([]);
+                  }
+                  setNotifOpen(o => !o);
+                }}
+                className="relative p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-colors"
+              >
+                <Bell size={20} />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <p className="text-sm font-semibold text-slate-900">Bildirimler</p>
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-sm text-slate-400">
+                      Yeni bildirim yok.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-50 max-h-72 overflow-y-auto">
+                      {notifications.map(n => (
+                        <div key={n.orderId} className="flex items-start gap-3 px-4 py-3 hover:bg-orange-50 transition-colors">
+                          <div className="w-8 h-8 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Timer size={15} className="text-orange-500" />
+                          </div>
+                          <Link
+                            to="/tables"
+                            onClick={() => { dismiss(n.orderId); setNotifOpen(false); }}
+                            className="flex-1 min-w-0"
+                          >
+                            <p className="text-sm font-semibold text-slate-900 truncate">{n.tableName}</p>
+                            <p className="text-xs text-orange-600 font-medium">Alarm tetiklendi</p>
+                          </Link>
+                          <button
+                            onClick={() => dismiss(n.orderId)}
+                            className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Avatar */}
             <div className="flex items-center gap-2.5">

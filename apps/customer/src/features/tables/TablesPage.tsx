@@ -4,8 +4,9 @@ import { orderService, menuService } from '@stockbite/api-client';
 import { Spinner } from '@stockbite/ui';
 import type { TableWithOrderDto, OrderItemDto } from '@stockbite/api-client';
 import {
-  Plus, UtensilsCrossed, X, Search, Trash2, ChevronRight, Timer, Banknote, CreditCard,
+  Plus, UtensilsCrossed, X, Search, Trash2, ChevronRight, Timer, Banknote, CreditCard, Bell, BellOff,
 } from 'lucide-react';
+import { readAlarms, saveAlarm, removeAlarm, clearAllForOrder } from '../../hooks/useTableAlarms';
 import toast from 'react-hot-toast';
 
 /* ─── Live timer ──────────────────────────────────────────────────── */
@@ -96,6 +97,10 @@ function TableDetailModal({
   const [search, setSearch] = useState('');
   const [activeCatId, setActiveCatId] = useState<string | null>(null);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [alarmInput, setAlarmInput] = useState('');
+  const [showAlarmInput, setShowAlarmInput] = useState(false);
+  const [, forceUpdate] = useState(0);
+  const alarms = readAlarms();
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['table-order', table.id],
@@ -109,31 +114,68 @@ function TableDetailModal({
       const [cats, items] = await Promise.all([menuService.getCategories(), menuService.getItems()]);
       return cats.map(c => ({ ...c, items: items.filter(i => i.categoryId === c.id && i.isAvailable) }));
     },
-    enabled: showAddItem,
+    staleTime: 0,
   });
 
   const addMutation = useMutation({
     mutationFn: ({ menuItemId }: { menuItemId: string }) =>
       orderService.addOrderItem(order!.id, { menuItemId, quantity: 1 }),
-    onSuccess: () => {
+    onMutate: async ({ menuItemId }) => {
+      await qc.cancelQueries({ queryKey: ['table-order', table.id] });
+      const previous = qc.getQueryData(['table-order', table.id]);
+      const menuItem = menuCategories?.flatMap(c => c.items).find(i => i.id === menuItemId);
+      if (menuItem) {
+        qc.setQueryData(['table-order', table.id], (old: typeof order) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: [...old.items, { id: `optimistic-${Date.now()}`, menuItemId, menuItemName: menuItem.name, unitPrice: menuItem.price, quantity: 1 }],
+            totalAmount: old.totalAmount + menuItem.price,
+          };
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(['table-order', table.id], ctx.previous);
+      toast.error('Ürün eklenemedi.');
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['table-order', table.id] });
       onUpdated();
     },
-    onError: () => toast.error('Ürün eklenemedi.'),
   });
 
   const removeMutation = useMutation({
     mutationFn: (itemId: string) => orderService.removeOrderItem(order!.id, itemId),
-    onSuccess: () => {
+    onMutate: async (itemId) => {
+      await qc.cancelQueries({ queryKey: ['table-order', table.id] });
+      const previous = qc.getQueryData(['table-order', table.id]);
+      qc.setQueryData(['table-order', table.id], (old: typeof order) => {
+        if (!old) return old;
+        const removed = old.items.find(i => i.id === itemId);
+        return {
+          ...old,
+          items: old.items.filter(i => i.id !== itemId),
+          totalAmount: old.totalAmount - (removed ? removed.unitPrice * removed.quantity : 0),
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(['table-order', table.id], ctx.previous);
+      toast.error('Ürün kaldırılamadı.');
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['table-order', table.id] });
       onUpdated();
     },
-    onError: () => toast.error('Ürün kaldırılamadı.'),
   });
 
   const closeMutation = useMutation({
     mutationFn: (paymentMethod: 0 | 1) => orderService.closeOrder(order!.id, paymentMethod),
     onSuccess: () => {
+      if (order) clearAllForOrder(order.id);
       onUpdated();
       toast.success('Ödeme alındı. Masa kapatıldı.');
       onClose();
@@ -144,6 +186,7 @@ function TableDetailModal({
   const cancelMutation = useMutation({
     mutationFn: () => orderService.cancelOrder(order!.id),
     onSuccess: () => {
+      if (order) clearAllForOrder(order.id);
       onUpdated();
       toast.success('Masa iptal edildi.');
       onClose();
@@ -152,11 +195,11 @@ function TableDetailModal({
   });
 
   function groupItems(items: OrderItemDto[]) {
-    const map = new Map<string, { item: OrderItemDto; count: number }>();
+    const map = new Map<string, { item: OrderItemDto; ids: string[]; count: number }>();
     for (const item of items) {
       const ex = map.get(item.menuItemId);
-      if (ex) ex.count += item.quantity;
-      else map.set(item.menuItemId, { item, count: item.quantity });
+      if (ex) { ex.count += item.quantity; ex.ids.push(item.id); }
+      else map.set(item.menuItemId, { item, ids: [item.id], count: item.quantity });
     }
     return [...map.values()];
   }
@@ -198,6 +241,75 @@ function TableDetailModal({
                 <Timer size={11} />
                 <span>{formatElapsed(table.openedAt, now)}</span>
               </div>
+
+              {/* Alarm */}
+              {order && (() => {
+                const activeAlarm = order ? alarms[order.id] : null;
+                return (
+                  <div className="mt-2">
+                    {activeAlarm ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-orange-600 font-medium flex items-center gap-1">
+                          <Bell size={11} className="text-orange-500" />
+                          {activeAlarm.thresholdMinutes} dk alarm kurulu
+                        </span>
+                        <button
+                          onClick={() => { removeAlarm(order.id); forceUpdate(n => n + 1); }}
+                          className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+                        >
+                          <BellOff size={11} />
+                        </button>
+                      </div>
+                    ) : showAlarmInput ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          max={999}
+                          placeholder="dk"
+                          value={alarmInput}
+                          onChange={e => setAlarmInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && alarmInput) {
+                              saveAlarm({ orderId: order.id, tableName: table.name, openedAt: table.openedAt, thresholdMinutes: Number(alarmInput), setAt: Date.now() }); forceUpdate(n => n + 1);
+                              setShowAlarmInput(false);
+                              setAlarmInput('');
+                              toast.success(`${alarmInput} dk sonra alarm kuruldu`);
+                            }
+                            if (e.key === 'Escape') { setShowAlarmInput(false); setAlarmInput(''); }
+                          }}
+                          autoFocus
+                          className="w-16 border border-slate-200 rounded-lg px-2 py-0.5 text-xs outline-none focus:border-violet-400"
+                        />
+                        <button
+                          onClick={() => {
+                            if (alarmInput) {
+                              saveAlarm({ orderId: order.id, tableName: table.name, openedAt: table.openedAt, thresholdMinutes: Number(alarmInput), setAt: Date.now() }); forceUpdate(n => n + 1);
+                              setShowAlarmInput(false);
+                              setAlarmInput('');
+                              toast.success(`${alarmInput} dk sonra alarm kuruldu`);
+                            }
+                          }}
+                          className="text-xs font-semibold text-violet-600 hover:text-violet-800"
+                        >
+                          Kur
+                        </button>
+                        <button onClick={() => { setShowAlarmInput(false); setAlarmInput(''); }} className="text-xs text-slate-400 hover:text-slate-600">
+                          <X size={11} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowAlarmInput(true)}
+                        className="flex items-center gap-1 text-xs text-slate-400 hover:text-orange-500 transition-colors"
+                      >
+                        <Bell size={11} />
+                        Alarm kur
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
             <button
               onClick={onClose}
@@ -214,8 +326,12 @@ function TableDetailModal({
             ) : grouped.length === 0 ? (
               <p className="text-center text-slate-400 text-sm py-6">Henüz ürün eklenmedi.</p>
             ) : (
-              grouped.map(({ item, count }) => (
-                <div key={item.id} className="flex items-center gap-3 bg-slate-50 rounded-xl px-3 py-2.5">
+              grouped.map(({ item, ids, count }) => (
+                <div
+                  key={item.menuItemId}
+                  onClick={() => addMutation.mutate({ menuItemId: item.menuItemId })}
+                  className="flex items-center gap-3 bg-slate-50 hover:bg-violet-50 rounded-xl px-3 py-2.5 cursor-pointer transition-colors"
+                >
                   <span className="w-7 h-7 bg-violet-100 rounded-lg flex items-center justify-center text-violet-700 text-xs font-black flex-shrink-0">
                     {count}x
                   </span>
@@ -226,7 +342,7 @@ function TableDetailModal({
                     ₺{(item.unitPrice * count).toFixed(2)}
                   </span>
                   <button
-                    onClick={() => removeMutation.mutate(item.id)}
+                    onClick={e => { e.stopPropagation(); removeMutation.mutate(ids[0]); }}
                     disabled={removeMutation.isPending}
                     className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 transition-colors flex-shrink-0"
                   >
@@ -419,7 +535,7 @@ export function TablesPage() {
   const { data: tables, isLoading } = useQuery({
     queryKey: ['active-tables'],
     queryFn: () => orderService.getActiveTables(),
-    refetchInterval: 30000,
+    refetchInterval: 8000,
   });
 
   const openMutation = useMutation({

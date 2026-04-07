@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orderService, menuService } from '@stockbite/api-client';
 import { Spinner } from '@stockbite/ui';
 import type { OrderItemDto } from '@stockbite/api-client';
-import { ArrowLeft, Plus, Trash2, X, Search, ChevronRight, Banknote, CreditCard } from 'lucide-react';
+import { ArrowLeft, Plus, X, Search, ChevronRight, Banknote, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 function useElapsed(openedAt: string) {
@@ -36,6 +36,7 @@ export function TableDetailPage() {
     queryKey: ['table-order', tableId],
     queryFn: () => orderService.getTableActiveOrder(tableId!),
     enabled: !!tableId,
+    refetchInterval: 8000,
   });
 
   const { data: menuCategories } = useQuery({
@@ -45,7 +46,6 @@ export function TableDetailPage() {
       const items = await menuService.getItems();
       return cats.map(c => ({ ...c, items: items.filter(i => i.categoryId === c.id && i.isAvailable) }));
     },
-    enabled: showAddItem,
   });
 
   const elapsed = useElapsed(order?.openedAt ?? new Date().toISOString());
@@ -53,20 +53,63 @@ export function TableDetailPage() {
   const addMutation = useMutation({
     mutationFn: ({ menuItemId }: { menuItemId: string }) =>
       orderService.addOrderItem(order!.id, { menuItemId, quantity: 1 }),
-    onSuccess: () => {
+    onMutate: async ({ menuItemId }) => {
+      await qc.cancelQueries({ queryKey: ['table-order', tableId] });
+      const previous = qc.getQueryData(['table-order', tableId]);
+      const menuItem = menuCategories?.flatMap(c => c.items).find(i => i.id === menuItemId);
+      if (menuItem) {
+        qc.setQueryData(['table-order', tableId], (old: typeof order) => {
+          if (!old) return old;
+          const fakeItem = {
+            id: `optimistic-${Date.now()}`,
+            menuItemId,
+            menuItemName: menuItem.name,
+            unitPrice: menuItem.price,
+            quantity: 1,
+          };
+          return {
+            ...old,
+            items: [...old.items, fakeItem],
+            totalAmount: old.totalAmount + menuItem.price,
+          };
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(['table-order', tableId], ctx.previous);
+      toast.error('Ürün eklenemedi.');
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['table-order', tableId] });
       qc.invalidateQueries({ queryKey: ['active-tables'] });
     },
-    onError: () => toast.error('Ürün eklenemedi.'),
   });
 
   const removeMutation = useMutation({
     mutationFn: (itemId: string) => orderService.removeOrderItem(order!.id, itemId),
-    onSuccess: () => {
+    onMutate: async (itemId) => {
+      await qc.cancelQueries({ queryKey: ['table-order', tableId] });
+      const previous = qc.getQueryData(['table-order', tableId]);
+      qc.setQueryData(['table-order', tableId], (old: typeof order) => {
+        if (!old) return old;
+        const removed = old.items.find(i => i.id === itemId);
+        return {
+          ...old,
+          items: old.items.filter(i => i.id !== itemId),
+          totalAmount: old.totalAmount - (removed ? removed.unitPrice * removed.quantity : 0),
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(['table-order', tableId], ctx.previous);
+      toast.error('Ürün kaldırılamadı.');
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['table-order', tableId] });
       qc.invalidateQueries({ queryKey: ['active-tables'] });
     },
-    onError: () => toast.error('Ürün kaldırılamadı.'),
   });
 
   const closeMutation = useMutation({
@@ -102,11 +145,11 @@ export function TableDetailPage() {
   );
 
   function groupItems(items: OrderItemDto[]) {
-    const map = new Map<string, { item: OrderItemDto; count: number }>();
+    const map = new Map<string, { item: OrderItemDto; ids: string[]; count: number }>();
     for (const item of items) {
       const existing = map.get(item.menuItemId);
-      if (existing) existing.count += item.quantity;
-      else map.set(item.menuItemId, { item, count: item.quantity });
+      if (existing) { existing.count += item.quantity; existing.ids.push(item.id); }
+      else map.set(item.menuItemId, { item, ids: [item.id], count: item.quantity });
     }
     return [...map.values()];
   }
@@ -140,11 +183,8 @@ export function TableDetailPage() {
             <p className="text-xs mt-1">Aşağıdaki düğme ile ürün ekleyin.</p>
           </div>
         ) : (
-          grouped.map(({ item, count }) => (
-            <div key={item.id} className="bg-white rounded-2xl border border-slate-100 flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-violet-600 text-xs font-black">{count}x</span>
-              </div>
+          grouped.map(({ item, ids, count }) => (
+            <div key={item.menuItemId} className="bg-white rounded-2xl border border-slate-100 flex items-center gap-3 px-4 py-3">
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-slate-900 text-sm truncate">{item.menuItemName}</p>
                 <p className="text-xs text-slate-400">₺{item.unitPrice.toFixed(2)} / adet</p>
@@ -152,13 +192,23 @@ export function TableDetailPage() {
               <p className="font-bold text-slate-700 text-sm flex-shrink-0">
                 ₺{(item.unitPrice * count).toFixed(2)}
               </p>
-              <button
-                onClick={() => removeMutation.mutate(item.id)}
-                disabled={removeMutation.isPending}
-                className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 transition-colors flex-shrink-0"
-              >
-                <Trash2 size={14} />
-              </button>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  onClick={() => removeMutation.mutate(ids[0])}
+                  disabled={removeMutation.isPending}
+                  className="w-7 h-7 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors font-bold text-base leading-none"
+                >
+                  −
+                </button>
+                <span className="w-7 text-center text-sm font-black text-slate-700">{count}</span>
+                <button
+                  onClick={() => addMutation.mutate({ menuItemId: item.menuItemId })}
+                  disabled={addMutation.isPending}
+                  className="w-7 h-7 rounded-lg bg-violet-50 text-violet-600 hover:bg-violet-100 flex items-center justify-center transition-colors"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
             </div>
           ))
         )}
