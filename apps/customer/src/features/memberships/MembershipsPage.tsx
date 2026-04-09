@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { membershipService } from '@stockbite/api-client';
-import type { MemberDetailDto, SubscriptionDto, SessionDto } from '@stockbite/api-client';
+import type { MemberDetailDto, MemberSubscriptionDto as SubscriptionDto, SessionDto } from '@stockbite/api-client';
 import { Button, Spinner, Modal, Input } from '@stockbite/ui';
 
 export function MembershipsPage() {

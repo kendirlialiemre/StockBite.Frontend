@@ -9,6 +9,13 @@ export interface DailySummaryDto {
   otherExpenses: number;
   grossProfit: number;
   orderCount: number;
+  tableCount: number;
+}
+
+export interface TopProductDto {
+  name: string;
+  totalQuantity: number;
+  totalRevenue: number;
 }
 
 export interface ReportRangeDto {
@@ -24,4 +31,5 @@ export interface ReportRangeDto {
   grossProfit: number;
   totalOrders: number;
   dailySummaries: DailySummaryDto[];
+  topProducts: TopProductDto[];
 }

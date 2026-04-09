@@ -4,7 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Minus, Plus, ShoppingCart, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { orderService, menuService } from '@stockbite/api-client';
-import type { TableDto, MenuItemDto } from '@stockbite/api-client';
+import type { TableWithOrderDto, MenuItemDto } from '@stockbite/api-client';
 import { Button, Spinner } from '@stockbite/ui';
 
 interface CartItem {
@@ -14,12 +14,12 @@ interface CartItem {
 
 export function NewOrderPage() {
   const navigate = useNavigate();
-  const [selectedTable, setSelectedTable] = useState<TableDto | null>(null);
+  const [selectedTable, setSelectedTable] = useState<(TableWithOrderDto & { isPackage?: boolean }) | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const { data: tables, isLoading: tablesLoading } = useQuery({
     queryKey: ['tables'],
-    queryFn: () => orderService.getTables(),
+    queryFn: () => orderService.getActiveTables(),
   });
 
   const { data: categories } = useQuery({
@@ -36,7 +36,7 @@ export function NewOrderPage() {
   const createOrderMutation = useMutation({
     mutationFn: async () => {
       const order = await orderService.createOrder({
-        tableId: selectedTable?.id,
+        tableId: selectedTable?.isPackage ? undefined : selectedTable?.id,
       });
       for (const ci of cart) {
         await orderService.addOrderItem(order.id, {
@@ -126,7 +126,7 @@ export function NewOrderPage() {
             <p className="text-sm text-slate-400">Masa bulunamadı.</p>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {tables?.filter((t) => t.isActive).map((table) => (
+            {tables?.map((table) => (
               <button
                 key={table.id}
                 onClick={() => setSelectedTable(table)}
@@ -135,13 +135,13 @@ export function NewOrderPage() {
                 <p className="font-semibold text-slate-900 text-base">
                   {table.name}
                 </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {table.capacity} kişilik
-                </p>
+                {table.orderId && (
+                  <p className="text-xs text-orange-500 mt-0.5">Dolu</p>
+                )}
               </button>
             ))}
             <button
-              onClick={() => setSelectedTable({ id: '', name: 'Paket', capacity: 0, isActive: true })}
+              onClick={() => setSelectedTable({ id: '', name: 'Paket', orderId: undefined, total: 0, itemCount: 0, openedAt: new Date().toISOString(), isPackage: true })}
               className="bg-white border border-dashed border-slate-300 rounded-lg p-5 text-center hover:border-emerald-400 transition-all"
             >
               <p className="font-semibold text-slate-900 text-base">Paket</p>

@@ -4,7 +4,7 @@ import { orderService, menuService } from '@stockbite/api-client';
 import { Spinner } from '@stockbite/ui';
 import type { TableWithOrderDto, OrderItemDto } from '@stockbite/api-client';
 import {
-  Plus, UtensilsCrossed, X, Search, Trash2, ChevronRight, Timer, Banknote, CreditCard, Bell, BellOff,
+  Plus, UtensilsCrossed, X, Search, Trash2, ChevronRight, Timer, Banknote, CreditCard, Bell, BellOff, Layers,
 } from 'lucide-react';
 import { readAlarms, saveAlarm, removeAlarm, clearAllForOrder } from '../../hooks/useTableAlarms';
 import toast from 'react-hot-toast';
@@ -97,6 +97,8 @@ function TableDetailModal({
   const [search, setSearch] = useState('');
   const [activeCatId, setActiveCatId] = useState<string | null>(null);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [mixedCash, setMixedCash] = useState('');
+  const [mixedCard, setMixedCard] = useState('');
   const [alarmInput, setAlarmInput] = useState('');
   const [showAlarmInput, setShowAlarmInput] = useState(false);
   const [, forceUpdate] = useState(0);
@@ -173,7 +175,8 @@ function TableDetailModal({
   });
 
   const closeMutation = useMutation({
-    mutationFn: (paymentMethod: 0 | 1) => orderService.closeOrder(order!.id, paymentMethod),
+    mutationFn: ({ paymentMethod, cashAmount, cardAmount }: { paymentMethod: 0 | 1 | 2; cashAmount?: number; cardAmount?: number }) =>
+      orderService.closeOrder(order!.id, paymentMethod, cashAmount, cardAmount),
     onSuccess: () => {
       if (order) clearAllForOrder(order.id);
       onUpdated();
@@ -490,7 +493,7 @@ function TableDetailModal({
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-slate-900 text-base">Ödeme Yöntemi</h3>
-              <button onClick={() => setShowConfirmClose(false)} className="text-slate-400 hover:text-slate-700">
+              <button onClick={() => { setShowConfirmClose(false); setMixedCash(''); setMixedCard(''); }} className="text-slate-400 hover:text-slate-700">
                 <X size={18} />
               </button>
             </div>
@@ -498,24 +501,78 @@ function TableDetailModal({
               <p className="text-xs text-emerald-600 font-medium">{table.name} • Toplam Tutar</p>
               <p className="text-2xl font-black text-emerald-700">₺{(order?.totalAmount ?? 0).toFixed(2)}</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3 mb-4">
               <button
-                onClick={() => { setShowConfirmClose(false); closeMutation.mutate(0); }}
+                onClick={() => { setShowConfirmClose(false); closeMutation.mutate({ paymentMethod: 0 }); }}
                 disabled={closeMutation.isPending}
-                className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-slate-200 hover:border-green-500 hover:bg-green-50 transition-all disabled:opacity-50"
+                className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 hover:border-green-500 hover:bg-green-50 transition-all disabled:opacity-50"
               >
-                <Banknote size={28} className="text-green-600" />
-                <span className="font-bold text-slate-800 text-sm">Nakit</span>
+                <Banknote size={26} className="text-green-600" />
+                <span className="font-bold text-slate-800 text-xs">Nakit</span>
               </button>
               <button
-                onClick={() => { setShowConfirmClose(false); closeMutation.mutate(1); }}
+                onClick={() => { setShowConfirmClose(false); closeMutation.mutate({ paymentMethod: 1 }); }}
                 disabled={closeMutation.isPending}
-                className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all disabled:opacity-50"
+                className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all disabled:opacity-50"
               >
-                <CreditCard size={28} className="text-blue-600" />
-                <span className="font-bold text-slate-800 text-sm">Kart</span>
+                <CreditCard size={26} className="text-blue-600" />
+                <span className="font-bold text-slate-800 text-xs">Kart</span>
+              </button>
+              <button
+                onClick={() => { setMixedCash(''); setMixedCard((order?.totalAmount ?? 0).toFixed(2)); }}
+                disabled={closeMutation.isPending}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 hover:border-violet-500 hover:bg-violet-50 transition-all disabled:opacity-50"
+              >
+                <Layers size={26} className="text-violet-600" />
+                <span className="font-bold text-slate-800 text-xs">Karma</span>
               </button>
             </div>
+
+            {(mixedCash !== '' || mixedCard !== '') && (() => {
+              const total = order?.totalAmount ?? 0;
+              const cash = parseFloat(mixedCash) || 0;
+              const card = parseFloat(mixedCard) || 0;
+              const remaining = total - cash - card;
+              const isValid = Math.abs(remaining) < 0.01;
+              return (
+                <div className="border border-violet-200 rounded-xl p-3 space-y-2 bg-violet-50">
+                  <div className="flex items-center gap-2">
+                    <Banknote size={14} className="text-green-600 flex-shrink-0" />
+                    <div className="flex-1">
+                      <label className="text-xs text-slate-500 block mb-0.5">Nakit (₺)</label>
+                      <input
+                        type="number" min="0" step="0.01" value={mixedCash}
+                        onChange={e => { setMixedCash(e.target.value); setMixedCard((total - (parseFloat(e.target.value) || 0)).toFixed(2)); }}
+                        className="w-full border border-slate-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-violet-400"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CreditCard size={14} className="text-blue-600 flex-shrink-0" />
+                    <div className="flex-1">
+                      <label className="text-xs text-slate-500 block mb-0.5">Kart (₺)</label>
+                      <input
+                        type="number" min="0" step="0.01" value={mixedCard}
+                        onChange={e => { setMixedCard(e.target.value); setMixedCash((total - (parseFloat(e.target.value) || 0)).toFixed(2)); }}
+                        className="w-full border border-slate-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-violet-400"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  {!isValid && (
+                    <p className="text-xs text-red-500 text-center">Kalan: ₺{remaining.toFixed(2)}</p>
+                  )}
+                  <button
+                    onClick={() => { setShowConfirmClose(false); closeMutation.mutate({ paymentMethod: 2, cashAmount: cash, cardAmount: card }); }}
+                    disabled={!isValid || closeMutation.isPending}
+                    className="w-full py-2 rounded-lg bg-violet-600 text-white text-xs font-bold hover:bg-violet-700 disabled:opacity-40 transition-colors"
+                  >
+                    Ödemeyi Tamamla
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

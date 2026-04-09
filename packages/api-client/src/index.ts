@@ -48,7 +48,7 @@ export { EXPENSE_CATEGORIES } from './types/expense';
 export type {
   MemberDto,
   MemberDetailDto,
-  SubscriptionDto,
+  SubscriptionDto as MemberSubscriptionDto,
   SessionDto,
   CreateMemberRequest,
   CreateSubscriptionRequest,
