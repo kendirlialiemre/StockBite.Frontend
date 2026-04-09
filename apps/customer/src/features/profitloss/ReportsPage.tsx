@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import {
   Banknote, CreditCard, TrendingUp, TrendingDown, ShoppingCart,
@@ -328,17 +329,19 @@ export function ReportsPage() {
     ? { from: customFrom, to: customTo }
     : periodRange(period);
 
-  const { data: report, isLoading, isError } = useQuery({
+  const { data: report, isLoading, isFetching, isError } = useQuery({
     queryKey: ['reports', 'range', from, to],
     queryFn: () => profitLossService.getReportRange(from, to),
     enabled: !!from && !!to,
-    refetchOnMount: 'always',
+    staleTime: 0,
+    refetchOnWindowFocus: false,
   });
 
   const chartData = report?.dailySummaries.map(d => ({
     date: d.date.split('T')[0],
     'Nakit': Number(d.cashRevenue.toFixed(2)),
     'Kart': Number(d.cardRevenue.toFixed(2)),
+    'Abonelik': Number((d.subscriptionRevenue ?? 0).toFixed(2)),
     'Gider': Number((d.totalCost + (d.otherExpenses ?? 0) + d.stockPurchaseCost).toFixed(2)),
     'Net Kâr': Number(d.grossProfit.toFixed(2)),
   }));
@@ -405,10 +408,10 @@ export function ReportsPage() {
         )}
       </div>
 
-      {isLoading && <div className="flex justify-center py-16"><Spinner size="lg" /></div>}
-      {isError   && <div className="py-10 text-center text-sm text-red-500">Rapor verileri yüklenemedi.</div>}
+      {(isLoading || isFetching) && <div className="flex justify-center py-16"><Spinner size="lg" /></div>}
+      {isError && <div className="py-10 text-center text-sm text-red-500">Rapor verileri yüklenemedi.</div>}
 
-      {!isLoading && !isError && report && (
+      {!isLoading && !isFetching && !isError && report && (
         <>
           {/* Summary cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -444,22 +447,114 @@ export function ReportsPage() {
 
           {/* Chart */}
           {chartData && chartData.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-              <h3 className="text-sm font-bold text-slate-900 mb-4">Günlük Gelir / Gider</h3>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }}
-                    tickFormatter={(v: string) => { const d = new Date(v); return `${d.getDate()}/${d.getMonth()+1}`; }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip formatter={(v: number) => fmt(v)} />
-                  <Legend />
-                  <Bar dataKey="Nakit"   fill="#22c55e" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="Kart"    fill="#3b82f6" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="Gider"   fill="#f97316" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="Net Kâr" fill="#10b981" radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              {/* Chart header */}
+              <div className="px-5 pt-5 pb-3 flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Gelir &amp; Gider Analizi</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">{chartData.length} günlük veri</p>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-slate-500">
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-green-400 inline-block" />Nakit</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-blue-400 inline-block" />Kart</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-red-400 inline-block" />Gider</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-0.5 bg-violet-500 inline-block" />Net Kâr</span>
+                </div>
+              </div>
+
+              <div className="px-2 pb-4">
+                <ResponsiveContainer key={`${from}-${to}`} width="100%" height={300}>
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
+                    barCategoryGap="25%" barGap={2}>
+                    <defs>
+                      <linearGradient id="gradNakit" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#4ade80" />
+                        <stop offset="100%" stopColor="#16a34a" />
+                      </linearGradient>
+                      <linearGradient id="gradKart" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#60a5fa" />
+                        <stop offset="100%" stopColor="#2563eb" />
+                      </linearGradient>
+                      <linearGradient id="gradGider" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f87171" />
+                        <stop offset="100%" stopColor="#dc2626" />
+                      </linearGradient>
+                    </defs>
+
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v: string) => {
+                        const d = new Date(v);
+                        const days = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+                        return chartData!.length === 1
+                          ? days[d.getDay()]
+                          : chartData!.length <= 7
+                          ? `${days[d.getDay()]} ${d.getDate()}`
+                          : `${d.getDate()}/${d.getMonth() + 1}`;
+                      }}
+                    />
+
+                    <YAxis
+                      yAxisId="bar"
+                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)}
+                      width={42}
+                    />
+                    <YAxis
+                      yAxisId="line"
+                      orientation="right"
+                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)}
+                      width={42}
+                    />
+
+                    <Tooltip
+                      cursor={{ fill: 'rgba(139,92,246,0.05)', radius: 6 }}
+                      contentStyle={{
+                        background: '#fff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 12,
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+                        fontSize: 12,
+                        padding: '10px 14px',
+                      }}
+                      labelStyle={{ color: '#475569', fontWeight: 700, marginBottom: 6 }}
+                      labelFormatter={(v: string) => {
+                        const d = new Date(v);
+                        const days = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+                        return `${days[d.getDay()]}, ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+                      }}
+                      formatter={(value: number, name: string) => [fmt(value), name]}
+                    />
+
+                    <ReferenceLine yAxisId="line" y={0} stroke="#e2e8f0" strokeDasharray="4 2" />
+
+                    <Bar yAxisId="bar" dataKey="Nakit"  stackId="rev" fill="url(#gradNakit)" radius={[0,0,0,0]} />
+                    <Bar yAxisId="bar" dataKey="Kart"   stackId="rev" fill="url(#gradKart)"  radius={[0,0,0,0]} />
+                    <Bar yAxisId="bar" dataKey="Abonelik" stackId="rev" fill="#a78bfa"       radius={[4,4,0,0]} />
+                    <Bar yAxisId="bar" dataKey="Gider"  stackId="exp" fill="url(#gradGider)" radius={[4,4,0,0]} />
+
+                    <Line
+                      yAxisId="line"
+                      dataKey="Net Kâr"
+                      type="monotone"
+                      stroke="#7c3aed"
+                      strokeWidth={2.5}
+                      dot={{ r: 4, fill: '#7c3aed', stroke: '#fff', strokeWidth: 2 }}
+                      activeDot={{ r: 6, fill: '#7c3aed', stroke: '#fff', strokeWidth: 2 }}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           )}
 
