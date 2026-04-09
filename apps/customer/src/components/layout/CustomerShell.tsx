@@ -19,6 +19,7 @@ import {
   Wallet,
   Timer,
   X,
+  BadgeCheck,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { ModuleType, orderService } from '@stockbite/api-client';
@@ -49,6 +50,7 @@ const mainNav: NavItem[] = [
   { to: '/store', label: 'Mağaza', icon: <Store size={18} /> },
   { to: '/menu/qr', label: 'QR Menü', icon: <QrCode size={18} />, moduleId: ModuleType.Menu },
   { to: '/tables', label: 'Masa Yönetimi', icon: <TableProperties size={18} />, moduleId: ModuleType.Tables },
+  { to: '/memberships', label: 'Abonelikler', icon: <BadgeCheck size={18} />, moduleId: ModuleType.Memberships },
 ];
 
 const settingsNav: NavItem[] = [

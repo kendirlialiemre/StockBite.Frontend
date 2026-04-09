@@ -3,6 +3,7 @@ export interface DailySummaryDto {
   totalRevenue: number;
   cashRevenue: number;
   cardRevenue: number;
+  subscriptionRevenue: number;
   totalCost: number;
   stockPurchaseCost: number;
   otherExpenses: number;
@@ -16,6 +17,7 @@ export interface ReportRangeDto {
   totalRevenue: number;
   cashRevenue: number;
   cardRevenue: number;
+  subscriptionRevenue: number;
   totalCost: number;
   stockPurchaseCost: number;
   otherExpenses: number;

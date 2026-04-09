@@ -14,6 +14,7 @@ export const Permissions = {
   },
   ProfitLoss: { View: 'ProfitLoss.View' },
   Tables: { View: 'Tables.View', Manage: 'Tables.Manage' },
+  Memberships: { View: 'Memberships.View', Manage: 'Memberships.Manage' },
 } as const;
 
 export const ModuleType = {
@@ -22,4 +23,5 @@ export const ModuleType = {
   Stock: 3,
   ProfitLoss: 4,
   Tables: 5,
+  Memberships: 6,
 } as const;

@@ -22,9 +22,10 @@ const MODULE_NAMES: Record<number, string> = {
   3: 'Stok',
   4: 'Kar/Zarar',
   5: 'Masa Yönetimi',
+  6: 'Abonelikler',
 };
 
-const ALL_MODULE_TYPES = [1, 2, 3, 4, 5];
+const ALL_MODULE_TYPES = [1, 2, 3, 4, 5, 6];
 
 async function fetchPackages(): Promise<PackageDto[]> {
   const res = await apiClient.get('/admin/packages');

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { Banknote, CreditCard, TrendingUp, TrendingDown, ShoppingCart, Package } from 'lucide-react';
+import { Banknote, CreditCard, TrendingUp, TrendingDown, ShoppingCart, Package, BadgeCheck } from 'lucide-react';
 import { profitLossService } from '@stockbite/api-client';
 import { Spinner } from '@stockbite/ui';
 
@@ -40,6 +40,7 @@ export function ReportsPage() {
     date: d.date.split('T')[0],
     'Nakit Gelir': Number(d.cashRevenue.toFixed(2)),
     'Kart Gelir': Number(d.cardRevenue.toFixed(2)),
+    'Abonelik Geliri': Number((d.subscriptionRevenue ?? 0).toFixed(2)),
     'Stok Gideri': Number(d.stockPurchaseCost.toFixed(2)),
     'Net Kâr': Number(d.grossProfit.toFixed(2)),
   }));
@@ -83,6 +84,7 @@ export function ReportsPage() {
             {[
               { label: 'Nakit Gelir', value: fmt(report.cashRevenue), icon: <Banknote size={18} className="text-green-600" />, bg: 'bg-green-100', text: 'text-slate-900' },
               { label: 'Kart Gelir', value: fmt(report.cardRevenue), icon: <CreditCard size={18} className="text-blue-600" />, bg: 'bg-blue-100', text: 'text-slate-900' },
+              { label: 'Abonelik Geliri', value: fmt(report.subscriptionRevenue ?? 0), icon: <BadgeCheck size={18} className="text-violet-600" />, bg: 'bg-violet-100', text: 'text-slate-900' },
               { label: 'Toplam Gelir', value: fmt(report.totalRevenue), icon: <TrendingUp size={18} className="text-indigo-600" />, bg: 'bg-indigo-100', text: 'text-slate-900' },
               { label: 'Stok Alım Gideri', value: `-${fmt(report.stockPurchaseCost)}`, icon: <Package size={18} className="text-orange-600" />, bg: 'bg-orange-100', text: 'text-slate-900' },
               { label: 'Malzeme Maliyeti', value: `-${fmt(report.totalCost)}`, icon: <TrendingDown size={18} className="text-red-500" />, bg: 'bg-red-100', text: 'text-slate-900' },
@@ -119,6 +121,7 @@ export function ReportsPage() {
                   <Legend />
                   <Bar dataKey="Nakit Gelir" fill="#22c55e" radius={[2, 2, 0, 0]} />
                   <Bar dataKey="Kart Gelir" fill="#3b82f6" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="Abonelik Geliri" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
                   <Bar dataKey="Stok Gideri" fill="#f97316" radius={[2, 2, 0, 0]} />
                   <Bar dataKey="Net Kâr" fill="#10b981" radius={[2, 2, 0, 0]} />
                 </BarChart>
@@ -142,6 +145,7 @@ export function ReportsPage() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Tarih</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-green-600">Nakit</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-blue-600">Kart</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-violet-600">Abonelik</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500">Toplam Gelir</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-orange-600">Stok Alım</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-red-500">Malzeme</th>
@@ -153,7 +157,7 @@ export function ReportsPage() {
                 <tbody>
                   {report.dailySummaries.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="text-center py-8 text-slate-400 text-sm">Bu dönemde veri yok</td>
+                      <td colSpan={9} className="text-center py-8 text-slate-400 text-sm">Bu dönemde veri yok</td>
                     </tr>
                   )}
                   {report.dailySummaries.map((day, idx) => (
@@ -163,6 +167,7 @@ export function ReportsPage() {
                       </td>
                       <td className="px-4 py-2.5 text-right text-green-700">{fmt(day.cashRevenue)}</td>
                       <td className="px-4 py-2.5 text-right text-blue-700">{fmt(day.cardRevenue)}</td>
+                      <td className="px-4 py-2.5 text-right text-violet-600">{fmt(day.subscriptionRevenue ?? 0)}</td>
                       <td className="px-4 py-2.5 text-right text-slate-900">{fmt(day.totalRevenue)}</td>
                       <td className="px-4 py-2.5 text-right text-orange-600">-{fmt(day.stockPurchaseCost)}</td>
                       <td className="px-4 py-2.5 text-right text-red-500">-{fmt(day.totalCost)}</td>

@@ -61,8 +61,8 @@ export const orderService = {
     return data;
   },
 
-  async closeOrder(orderId: string, paymentMethod: 0 | 1): Promise<void> {
-    await apiClient.post(`/orders/${orderId}/close`, { paymentMethod });
+  async closeOrder(orderId: string, paymentMethod: 0 | 1 | 2, cashAmount?: number, cardAmount?: number): Promise<void> {
+    await apiClient.post(`/orders/${orderId}/close`, { paymentMethod, cashAmount, cardAmount });
   },
 
   async cancelOrder(orderId: string): Promise<void> {

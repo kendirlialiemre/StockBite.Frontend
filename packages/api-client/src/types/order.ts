@@ -33,7 +33,9 @@ export interface OrderDto {
   openedAt: string;
   closedAt: string | null;
   totalAmount: number;
-  paymentMethod: 0 | 1 | null;
+  paymentMethod: 0 | 1 | 2 | null;
+  cashAmount: number | null;
+  cardAmount: number | null;
   items: OrderItemDto[];
 }
 

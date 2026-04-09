@@ -29,6 +29,7 @@ import { TablesPage } from './features/tables/TablesPage';
 import { TableDetailPage } from './features/tables/TableDetailPage';
 import { MySubscriptionsPage } from './features/store/MySubscriptionsPage';
 import { ExpensesPage } from './features/expenses/ExpensesPage';
+import { MembershipsPage } from './features/memberships/MembershipsPage';
 import { ModuleType, Permissions } from '@stockbite/api-client';
 
 export default function App() {
@@ -158,6 +159,15 @@ export default function App() {
           element={
             <ModuleGuard moduleId={ModuleType.Tables}>
               <TableDetailPage />
+            </ModuleGuard>
+          }
+        />
+
+        <Route
+          path="memberships"
+          element={
+            <ModuleGuard moduleId={ModuleType.Memberships}>
+              <MembershipsPage />
             </ModuleGuard>
           }
         />

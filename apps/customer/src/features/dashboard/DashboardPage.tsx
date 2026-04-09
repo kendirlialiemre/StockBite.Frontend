@@ -11,6 +11,7 @@ import {
   BarChart3,
   ArrowRight,
   CheckCircle2,
+  BadgeCheck,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { orderService, stockService, profitLossService, ModuleType } from '@stockbite/api-client';
@@ -93,6 +94,7 @@ export function DashboardPage() {
   const totalRevenue = daily?.totalRevenue ?? 0;
   const cashShare = totalRevenue > 0 ? (daily?.cashRevenue ?? 0) / totalRevenue : 0;
   const cardShare = totalRevenue > 0 ? (daily?.cardRevenue ?? 0) / totalRevenue : 0;
+  const subShare = totalRevenue > 0 ? (daily?.subscriptionRevenue ?? 0) / totalRevenue : 0;
 
   return (
     <div className="p-3 sm:p-6 space-y-6 max-w-6xl">
@@ -260,6 +262,20 @@ export function DashboardPage() {
                     <div
                       className="bg-blue-400 h-2 rounded-full transition-all"
                       style={{ width: `${cardShare * 100}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <BadgeCheck size={15} className="text-violet-500" />
+                      Abonelik
+                    </div>
+                    <span className="font-semibold text-slate-800">{fmt(daily?.subscriptionRevenue ?? 0)}</span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2">
+                    <div
+                      className="bg-violet-400 h-2 rounded-full transition-all"
+                      style={{ width: `${subShare * 100}%` }}
                     />
                   </div>
 
