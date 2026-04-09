@@ -141,7 +141,7 @@ export function NewOrderPage() {
               </button>
             ))}
             <button
-              onClick={() => setSelectedTable({ id: '', name: 'Paket', orderId: undefined, total: 0, itemCount: 0, openedAt: new Date().toISOString(), isPackage: true })}
+              onClick={() => setSelectedTable({ id: '', name: 'Paket', orderId: null, total: 0, itemCount: 0, openedAt: new Date().toISOString(), isPackage: true })}
               className="bg-white border border-dashed border-slate-300 rounded-lg p-5 text-center hover:border-emerald-400 transition-all"
             >
               <p className="font-semibold text-slate-900 text-base">Paket</p>
