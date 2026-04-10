@@ -53,7 +53,8 @@ function QuickLink({ to, icon, label, color }: QuickLinkProps) {
 
 export function DashboardPage() {
   const { user, hasModule } = useAuthStore();
-  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   const { data: orders, isLoading: ordersLoading } = useQuery({
     queryKey: ['orders', { status: 0 }],

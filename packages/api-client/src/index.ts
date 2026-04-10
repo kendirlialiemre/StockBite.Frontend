@@ -65,3 +65,5 @@ export { profitLossService } from './services/profitLossService';
 export { userService } from './services/userService';
 export { expenseService } from './services/expenseService';
 export { membershipService } from './services/membershipService';
+export { eventService } from './services/eventService';
+export type { EventDto, CreateEventRequest, UpdateEventRequest, UpdateEventRequest as EventUpdateRequest, EventStatus, EventPaymentMethod, TakeEventPaymentRequest } from './types/event';

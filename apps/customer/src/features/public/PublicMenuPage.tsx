@@ -116,7 +116,11 @@ export function PublicMenuPage() {
     ? <ModernTemplate data={data} />
     : data.qrMenuTemplate === 3
       ? <ClassicTemplate data={data} />
-      : <MinimalTemplate data={data} />;
+      : data.qrMenuTemplate === 4
+        ? <BistroTemplate data={data} />
+        : data.qrMenuTemplate === 5
+          ? <LuxuryTemplate data={data} />
+          : <MinimalTemplate data={data} />;
 
   return <div style={{ fontFamily: fontCss }}>{inner}</div>;
 }
@@ -330,6 +334,145 @@ function ClassicTemplate({ data }: { data: PublicMenuData }) {
       </div>
 
       <p className="text-center text-xs pb-8" style={{ color: withAlpha(data.primaryColor, 0.25) }}>StockBite ile oluşturuldu</p>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   TEMPLATE 4 — BİSTRO (scroll, tüm kategoriler)
+══════════════════════════════════════════ */
+function BistroTemplate({ data }: { data: PublicMenuData }) {
+  const cats = data.categories.filter(c => c.items.length > 0);
+
+  return (
+    <div className="min-h-screen" style={{ background: data.bgColor }}>
+      {/* Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10" style={{ background: data.primaryColor }} />
+        <div className="relative pt-12 pb-8 px-6 flex flex-col items-center gap-3">
+          <LogoOrInitial data={data} size="lg" />
+          <h1 className="text-2xl font-black text-center" style={{ color: data.textColor }}>{data.tenantName}</h1>
+          <div className="flex items-center gap-3">
+            <div className="h-px w-10" style={{ background: withAlpha(data.primaryColor, 0.4) }} />
+            <span className="text-xs tracking-widest uppercase font-medium" style={{ color: data.primaryColor }}>Menü</span>
+            <div className="h-px w-10" style={{ background: withAlpha(data.primaryColor, 0.4) }} />
+          </div>
+        </div>
+      </div>
+
+      {/* All categories */}
+      <div className="max-w-xl mx-auto px-4 pb-10 space-y-8 pt-4">
+        {cats.map(cat => (
+          <div key={cat.id}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-1 h-6 rounded-full" style={{ background: data.primaryColor }} />
+              <h2 className="text-base font-black tracking-tight" style={{ color: data.textColor }}>{cat.name}</h2>
+              <div className="flex-1 h-px" style={{ background: withAlpha(data.textColor, 0.08) }} />
+            </div>
+            <div className="space-y-2.5">
+              {cat.items.map(item => (
+                <div key={item.id}
+                  className="rounded-2xl overflow-hidden flex min-h-[80px] shadow-sm"
+                  style={{ background: '#fff', borderLeft: `3px solid ${data.primaryColor}` }}>
+                  <div className="flex-1 px-4 py-3 flex flex-col justify-center min-w-0">
+                    <p className="font-bold text-sm" style={{ color: data.textColor }}>{item.name}</p>
+                    {item.description && (
+                      <p className="text-xs mt-0.5 line-clamp-2" style={{ color: withAlpha(data.textColor, 0.5) }}>{item.description}</p>
+                    )}
+                    <p className="text-sm font-black mt-1.5" style={{ color: data.primaryColor }}>₺{item.price.toFixed(2)}</p>
+                  </div>
+                  {item.imageUrl && (
+                    <div className="w-24 flex-shrink-0 relative">
+                      <img src={item.imageUrl.startsWith('http') ? item.imageUrl : `${API_BASE}${item.imageUrl}`}
+                        alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="text-center text-xs pb-8" style={{ color: withAlpha(data.textColor, 0.2) }}>StockBite ile oluşturuldu</p>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   TEMPLATE 5 — DARK LUXURY
+══════════════════════════════════════════ */
+function LuxuryTemplate({ data }: { data: PublicMenuData }) {
+  const cats = data.categories.filter(c => c.items.length > 0);
+  const [active, setActive] = useState(cats[0]?.id ?? '');
+  const current = cats.find(c => c.id === active);
+
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: data.bgColor }}>
+      {/* Header */}
+      <div className="pt-14 pb-8 px-6 text-center relative overflow-hidden">
+        <div className="absolute inset-x-0 bottom-0 h-px"
+          style={{ background: `linear-gradient(90deg, transparent, ${data.primaryColor}, transparent)` }} />
+        <div className="flex justify-center mb-4">
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full blur-xl opacity-40" style={{ background: data.primaryColor }} />
+            <LogoOrInitial data={data} size="lg" />
+          </div>
+        </div>
+        <h1 className="text-3xl font-black tracking-tight" style={{ color: data.primaryColor, fontFamily: 'Georgia, serif' }}>
+          {data.tenantName}
+        </h1>
+        <p className="text-xs tracking-[0.3em] uppercase mt-1.5 font-medium" style={{ color: withAlpha(data.primaryColor, 0.5) }}>
+          Fine Dining
+        </p>
+      </div>
+
+      {/* Category tabs */}
+      <div className="sticky top-0 z-10 px-4 py-3"
+        style={{ background: withAlpha(data.bgColor, 0.95), backdropFilter: 'blur(16px)', borderBottom: `1px solid ${withAlpha(data.primaryColor, 0.15)}` }}>
+        <div className="flex gap-2 justify-center overflow-x-auto">
+          {cats.map(cat => (
+            <button key={cat.id} onClick={() => setActive(cat.id)}
+              className="flex-shrink-0 px-4 py-1.5 text-xs font-bold transition-all whitespace-nowrap rounded-lg"
+              style={active === cat.id
+                ? { background: data.primaryColor, color: contrastText(data.primaryColor) }
+                : { color: withAlpha(data.primaryColor, 0.55), border: `1px solid ${withAlpha(data.primaryColor, 0.2)}` }}>
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 2-col grid with image + price overlay */}
+      <div className="flex-1 max-w-xl mx-auto w-full px-4 py-6">
+        <div className="grid grid-cols-2 gap-3">
+          {current?.items.map(item => (
+            <div key={item.id} className="rounded-2xl overflow-hidden flex flex-col"
+              style={{ background: withAlpha('#ffffff', 0.04), border: `1px solid ${withAlpha(data.primaryColor, 0.15)}` }}>
+              <div className="relative h-28 overflow-hidden">
+                {item.imageUrl
+                  ? <img src={item.imageUrl.startsWith('http') ? item.imageUrl : `${API_BASE}${item.imageUrl}`}
+                      alt={item.name} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center"
+                      style={{ background: withAlpha(data.primaryColor, 0.08) }}>
+                      <span className="text-4xl font-black" style={{ color: withAlpha(data.primaryColor, 0.25) }}>{item.name[0]}</span>
+                    </div>
+                }
+                <div className="absolute bottom-2 right-2 px-2 py-1 rounded-lg"
+                  style={{ background: data.primaryColor }}>
+                  <span className="text-xs font-black" style={{ color: contrastText(data.primaryColor) }}>₺{item.price.toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="p-3">
+                <p className="font-bold text-sm leading-tight" style={{ color: withAlpha('#ffffff', 0.9) }}>{item.name}</p>
+                {item.description && (
+                  <p className="text-xs mt-1 line-clamp-2" style={{ color: withAlpha('#ffffff', 0.35) }}>{item.description}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="text-center text-xs pb-8" style={{ color: withAlpha(data.primaryColor, 0.2) }}>StockBite ile oluşturuldu</p>
     </div>
   );
 }

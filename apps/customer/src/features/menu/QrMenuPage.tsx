@@ -7,6 +7,7 @@ import { apiClient, menuService } from '@stockbite/api-client';
 import type { MenuQrCodeDto } from '@stockbite/api-client';
 import { Spinner } from '@stockbite/ui';
 import { Plus, Trash2, RefreshCw, Download, ExternalLink, QrCode, Palette } from 'lucide-react';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 const API_BASE = 'http://localhost:5000';
 
@@ -47,10 +48,7 @@ function QrCard({
           <p className="text-xs text-slate-400 mt-0.5">Oluşturuldu: {fmt(qr.createdAt)}</p>
         </div>
         <button
-          onClick={() => {
-            if (confirm(`"${qr.label}" QR kodunu silmek istediğinize emin misiniz?`))
-              onDelete(qr.id);
-          }}
+          onClick={() => onDelete(qr.id)}
           className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
           title="Sil"
         >
@@ -115,6 +113,7 @@ export function QrMenuPage() {
   const [searchParams] = useSearchParams();
   const [label, setLabel] = useState('');
   const [showForm, setShowForm] = useState(searchParams.get('create') === '1');
+  const [deleteConfirm, setDeleteConfirm] = useState<MenuQrCodeDto | null>(null);
 
   const { data: tenantInfo, isLoading: slugLoading } = useQuery({
     queryKey: ['me', 'info'],
@@ -237,7 +236,7 @@ export function QrMenuPage() {
             <QrCard
               key={qr.id}
               qr={qr}
-              onDelete={(id) => deleteMutation.mutate(id)}
+              onDelete={() => setDeleteConfirm(qr)}
               onRegenerate={(id) => regenerateMutation.mutate(id)}
               onEditDesign={(id) => navigate(`/menu/template?qrId=${id}`)}
             />
@@ -249,6 +248,16 @@ export function QrMenuPage() {
         <p className="text-xs text-slate-400 text-center">
           Menü base URL: <span className="font-mono">{window.location.origin}/m/{tenantInfo.slug}</span>
         </p>
+      )}
+
+      {deleteConfirm && (
+        <ConfirmDialog
+          title="QR Kodu Sil"
+          message={`"${deleteConfirm.label}" QR kodunu silmek istediğinize emin misiniz?`}
+          confirmLabel="Evet, Sil"
+          onConfirm={() => deleteMutation.mutate(deleteConfirm.id)}
+          onCancel={() => setDeleteConfirm(null)}
+        />
       )}
     </div>
   );

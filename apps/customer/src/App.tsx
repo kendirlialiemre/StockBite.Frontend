@@ -30,6 +30,7 @@ import { TableDetailPage } from './features/tables/TableDetailPage';
 import { MySubscriptionsPage } from './features/store/MySubscriptionsPage';
 import { ExpensesPage } from './features/expenses/ExpensesPage';
 import { MembershipsPage } from './features/memberships/MembershipsPage';
+import { EventsPage } from './features/events/EventsPage';
 import { ModuleType, Permissions } from '@stockbite/api-client';
 
 export default function App() {
@@ -168,6 +169,15 @@ export default function App() {
           element={
             <ModuleGuard moduleId={ModuleType.Memberships}>
               <MembershipsPage />
+            </ModuleGuard>
+          }
+        />
+
+        <Route
+          path="events"
+          element={
+            <ModuleGuard moduleId={ModuleType.Events}>
+              <EventsPage />
             </ModuleGuard>
           }
         />

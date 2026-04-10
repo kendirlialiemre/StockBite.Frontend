@@ -4,8 +4,10 @@ import { Link } from 'react-router-dom';
 import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { stockService, Permissions } from '@stockbite/api-client';
+import type { StockItemDto } from '@stockbite/api-client';
 import { Button, Badge, Spinner, Modal, Input } from '@stockbite/ui';
 import { useAuthStore } from '../../store/authStore';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 type FormState = {
   name: string;
@@ -26,6 +28,7 @@ export function StockItemsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [errors, setErrors] = useState<Partial<FormState>>({});
+  const [deleteConfirm, setDeleteConfirm] = useState<StockItemDto | null>(null);
 
   const { data: items, isLoading } = useQuery({
     queryKey: ['stock', 'items'],
@@ -224,11 +227,7 @@ export function StockItemsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              if (confirm(`"${item.name}" silinsin mi?`)) {
-                                deleteMutation.mutate(item.id);
-                              }
-                            }}
+                            onClick={() => setDeleteConfirm(item)}
                           >
                             <Trash2 size={14} className="text-red-400" />
                           </Button>
@@ -290,6 +289,16 @@ export function StockItemsPage() {
           </div>
         </form>
       </Modal>
+
+      {deleteConfirm && (
+        <ConfirmDialog
+          title="Ürünü Sil"
+          message={`"${deleteConfirm.name}" stok ürünü silinsin mi? Bu işlem geri alınamaz.`}
+          confirmLabel="Evet, Sil"
+          onConfirm={() => deleteMutation.mutate(deleteConfirm.id)}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
     </div>
   );
 }

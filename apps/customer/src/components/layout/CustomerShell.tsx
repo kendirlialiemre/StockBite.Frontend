@@ -20,6 +20,7 @@ import {
   Timer,
   X,
   BadgeCheck,
+  PartyPopper,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { ModuleType, orderService } from '@stockbite/api-client';
@@ -51,6 +52,7 @@ const mainNav: NavItem[] = [
   { to: '/menu/qr', label: 'QR Menü', icon: <QrCode size={18} />, moduleId: ModuleType.Menu },
   { to: '/tables', label: 'Masa Yönetimi', icon: <TableProperties size={18} />, moduleId: ModuleType.Tables },
   { to: '/memberships', label: 'Abonelikler', icon: <BadgeCheck size={18} />, moduleId: ModuleType.Memberships },
+  { to: '/events', label: 'Etkinlikler', icon: <PartyPopper size={18} />, moduleId: ModuleType.Events },
 ];
 
 const settingsNav: NavItem[] = [

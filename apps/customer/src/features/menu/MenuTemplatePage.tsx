@@ -331,6 +331,92 @@ function ClassicLive({ theme }: { theme: Theme }) {
   );
 }
 
+function BistroLive({ theme }: { theme: Theme }) {
+  return (
+    <div className="w-full h-full flex flex-col overflow-hidden" style={{ background: theme.bgColor }}>
+      {/* Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10" style={{ background: theme.primaryColor }} />
+        <div className="relative pt-3 pb-2.5 flex flex-col items-center gap-1">
+          <LogoOrInitial logoSrc={theme.logoSrc} name={theme.tenantName} size="w-9 h-9" bg={theme.primaryColor} />
+          <span className="text-[8px] font-black" style={{ color: theme.textColor }}>{theme.tenantName}</span>
+          <div className="flex items-center gap-2">
+            <div className="h-px w-5" style={{ background: withAlpha(theme.primaryColor, 0.4) }} />
+            <span className="text-[5px] tracking-widest uppercase" style={{ color: theme.primaryColor }}>Menü</span>
+            <div className="h-px w-5" style={{ background: withAlpha(theme.primaryColor, 0.4) }} />
+          </div>
+        </div>
+      </div>
+      {/* Category section */}
+      <div className="flex-1 px-2 pt-1.5 space-y-2 overflow-hidden">
+        {DEMO_CATEGORIES.slice(0, 2).map((cat, ci) => (
+          <div key={cat}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <div className="w-0.5 h-3 rounded-full" style={{ background: theme.primaryColor }} />
+              <span className="text-[6px] font-black" style={{ color: theme.textColor }}>{cat}</span>
+              <div className="flex-1 h-px" style={{ background: withAlpha(theme.textColor, 0.08) }} />
+            </div>
+            {DEMO_ITEMS.slice(0, ci === 0 ? 2 : 1).map(item => (
+              <div key={item.name} className="rounded-lg overflow-hidden flex mb-1 shadow-sm"
+                style={{ background: '#fff', borderLeft: `2px solid ${theme.primaryColor}`, minHeight: 26 }}>
+                <div className="flex-1 px-1.5 py-1 flex flex-col justify-center">
+                  <span className="text-[5.5px] font-bold block" style={{ color: theme.textColor }}>{item.name}</span>
+                  <span className="text-[5px] font-black" style={{ color: theme.primaryColor }}>₺{item.price}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LuxuryLive({ theme }: { theme: Theme }) {
+  const onPrimary = contrastText(theme.primaryColor);
+  return (
+    <div className="w-full h-full flex flex-col overflow-hidden" style={{ background: theme.bgColor }}>
+      {/* Header */}
+      <div className="pt-3 pb-2 flex flex-col items-center gap-1 relative">
+        <div className="absolute inset-x-0 bottom-0 h-px"
+          style={{ background: `linear-gradient(90deg, transparent, ${theme.primaryColor}, transparent)` }} />
+        <LogoOrInitial logoSrc={theme.logoSrc} name={theme.tenantName} size="w-9 h-9" bg={theme.primaryColor} />
+        <span className="text-[8px] font-black" style={{ color: theme.primaryColor, fontFamily: 'Georgia, serif' }}>{theme.tenantName}</span>
+        <span className="text-[5px] tracking-[0.2em] uppercase" style={{ color: withAlpha(theme.primaryColor, 0.5) }}>Fine Dining</span>
+      </div>
+      {/* Tabs */}
+      <div className="py-1.5 px-2 flex gap-1 justify-center"
+        style={{ borderBottom: `1px solid ${withAlpha(theme.primaryColor, 0.15)}` }}>
+        {DEMO_CATEGORIES.map((cat, i) => (
+          <span key={cat} className="rounded-md px-1.5 py-0.5 text-[5.5px] font-bold flex-shrink-0"
+            style={i === 0
+              ? { background: theme.primaryColor, color: onPrimary }
+              : { color: withAlpha(theme.primaryColor, 0.5), border: `1px solid ${withAlpha(theme.primaryColor, 0.2)}` }}>
+            {cat}
+          </span>
+        ))}
+      </div>
+      {/* Grid */}
+      <div className="flex-1 px-1.5 pt-1.5 grid grid-cols-2 gap-1.5 overflow-hidden">
+        {DEMO_ITEMS.map(item => (
+          <div key={item.name} className="rounded-lg overflow-hidden flex flex-col"
+            style={{ background: withAlpha('#ffffff', 0.04), border: `1px solid ${withAlpha(theme.primaryColor, 0.15)}` }}>
+            <div className="h-8 flex items-center justify-center relative"
+              style={{ background: withAlpha(theme.primaryColor, 0.08) }}>
+              <span className="text-[10px] font-black" style={{ color: withAlpha(theme.primaryColor, 0.3) }}>{item.name[0]}</span>
+              <div className="absolute bottom-1 right-1 px-1 rounded text-[4.5px] font-black"
+                style={{ background: theme.primaryColor, color: onPrimary }}>₺{item.price}</div>
+            </div>
+            <div className="p-1">
+              <p className="text-[5px] font-bold leading-tight" style={{ color: withAlpha('#ffffff', 0.85) }}>{item.name}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─────────────────────────────────────────────────────
    Telefon çerçevesi
 ───────────────────────────────────────────────────── */
@@ -440,6 +526,8 @@ const LAYOUTS = [
   { id: 1, name: 'Minimal', desc: 'Liste görünüm, beyaz kartlar' },
   { id: 2, name: 'Modern', desc: 'Koyu zemin, ızgara kartlar' },
   { id: 3, name: 'Classic', desc: 'Sıcak tonlar, zarif header' },
+  { id: 4, name: 'Bistro', desc: 'Tüm kategoriler scroll' },
+  { id: 5, name: 'Luxury', desc: 'Koyu zemin, altın aksanlar' },
 ];
 
 /* ─────────────────────────────────────────────────────
@@ -568,12 +656,18 @@ export function MenuTemplatePage() {
       if (id === 1) { setPrimaryColor('#0f172a'); setBgColor('#f9fafb'); }
       if (id === 2) { setPrimaryColor('#7c3aed'); setBgColor('#0a0a0f'); }
       if (id === 3) { setPrimaryColor('#92400e'); setBgColor('#fdf8f0'); }
+      if (id === 4) { setPrimaryColor('#d97706'); setBgColor('#fffbf5'); setTextColor('#1c1917'); }
+      if (id === 5) { setPrimaryColor('#eab308'); setBgColor('#09090b'); setTextColor('#fafaf9'); }
     }
   }
 
   const isSaving = logoMutation.isPending || designMutation.isPending;
   const PreviewComponent =
-    currentLayout === 2 ? ModernLive : currentLayout === 3 ? ClassicLive : MinimalLive;
+    currentLayout === 2 ? ModernLive
+    : currentLayout === 3 ? ClassicLive
+    : currentLayout === 4 ? BistroLive
+    : currentLayout === 5 ? LuxuryLive
+    : MinimalLive;
 
   if (isLoading) {
     return (

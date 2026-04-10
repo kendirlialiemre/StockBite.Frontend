@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import {
   Banknote, CreditCard, TrendingUp, TrendingDown, ShoppingCart,
-  Package, BadgeCheck, FileDown, Calendar,
+  Package, BadgeCheck, FileDown, Calendar, PartyPopper,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -15,7 +15,9 @@ import type { ReportRangeDto } from '@stockbite/api-client';
 import { Spinner } from '@stockbite/ui';
 
 /* ─── Helpers ────────────────────────────────────────────────────── */
-function toStr(d: Date) { return d.toISOString().split('T')[0]; }
+function toStr(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 function fmt(v: number) { return `₺${v.toFixed(2)}`; }
 function trDate(iso: string) {
   return new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -136,6 +138,7 @@ function exportPdf(report: ReportRangeDto, from: string, to: string) {
     { label: 'Nakit Gelir',      value: money(report.cashRevenue),              color: [22, 163, 74]  as [number,number,number] },
     { label: 'Kart Gelir',       value: money(report.cardRevenue),              color: [37, 99, 235]  as [number,number,number] },
     { label: 'Abonelik Geliri',  value: money(report.subscriptionRevenue ?? 0), color: [124, 58, 237] as [number,number,number] },
+    { label: 'Etkinlik Geliri',  value: money(report.eventRevenue ?? 0),        color: [219, 39, 119] as [number,number,number] },
     { label: 'TOPLAM GELIR',     value: money(report.totalRevenue),             color: [30, 30, 30]   as [number,number,number], bold: true },
   ];
   const rightItems = [
@@ -342,6 +345,7 @@ export function ReportsPage() {
     'Nakit': Number(d.cashRevenue.toFixed(2)),
     'Kart': Number(d.cardRevenue.toFixed(2)),
     'Abonelik': Number((d.subscriptionRevenue ?? 0).toFixed(2)),
+    'Etkinlik': Number((d.eventRevenue ?? 0).toFixed(2)),
     'Gider': Number((d.totalCost + (d.otherExpenses ?? 0) + d.stockPurchaseCost).toFixed(2)),
     'Net Kâr': Number(d.grossProfit.toFixed(2)),
   }));
@@ -418,7 +422,8 @@ export function ReportsPage() {
             {[
               { label: 'Nakit Gelir',      value: fmt(report.cashRevenue),               icon: <Banknote size={18}    className="text-green-600"  />, bg: 'bg-green-50',  border: 'border-green-200'  },
               { label: 'Kart Gelir',       value: fmt(report.cardRevenue),               icon: <CreditCard size={18}  className="text-blue-600"   />, bg: 'bg-blue-50',   border: 'border-blue-200'   },
-              { label: 'Abonelik',         value: fmt(report.subscriptionRevenue ?? 0),  icon: <BadgeCheck size={18}  className="text-violet-600" />, bg: 'bg-violet-50', border: 'border-violet-200' },
+              { label: 'Abonelik',         value: fmt(report.subscriptionRevenue ?? 0),  icon: <BadgeCheck size={18}   className="text-violet-600" />, bg: 'bg-violet-50', border: 'border-violet-200' },
+              { label: 'Etkinlik Geliri',  value: fmt(report.eventRevenue ?? 0),         icon: <PartyPopper size={18}  className="text-pink-600"   />, bg: 'bg-pink-50',   border: 'border-pink-200'   },
               { label: 'Toplam Gelir',     value: fmt(report.totalRevenue),              icon: <TrendingUp size={18}  className="text-indigo-600" />, bg: 'bg-indigo-50', border: 'border-indigo-200' },
               { label: 'Stok Alım',        value: `-${fmt(report.stockPurchaseCost)}`,   icon: <Package size={18}     className="text-orange-600" />, bg: 'bg-orange-50', border: 'border-orange-200' },
               { label: 'Malzeme Maliyeti', value: `-${fmt(report.totalCost)}`,           icon: <TrendingDown size={18} className="text-red-500"   />, bg: 'bg-red-50',    border: 'border-red-200'    },
@@ -454,9 +459,11 @@ export function ReportsPage() {
                   <h3 className="text-sm font-bold text-slate-900">Gelir &amp; Gider Analizi</h3>
                   <p className="text-xs text-slate-400 mt-0.5">{chartData.length} günlük veri</p>
                 </div>
-                <div className="flex items-center gap-4 text-xs text-slate-500">
+                <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap">
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-green-400 inline-block" />Nakit</span>
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-blue-400 inline-block" />Kart</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-violet-400 inline-block" />Abonelik</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-pink-400 inline-block" />Etkinlik</span>
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-red-400 inline-block" />Gider</span>
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-0.5 bg-violet-500 inline-block" />Net Kâr</span>
                 </div>
@@ -538,9 +545,10 @@ export function ReportsPage() {
 
                     <ReferenceLine yAxisId="line" y={0} stroke="#e2e8f0" strokeDasharray="4 2" />
 
-                    <Bar yAxisId="bar" dataKey="Nakit"  stackId="rev" fill="url(#gradNakit)" radius={[0,0,0,0]} />
-                    <Bar yAxisId="bar" dataKey="Kart"   stackId="rev" fill="url(#gradKart)"  radius={[0,0,0,0]} />
-                    <Bar yAxisId="bar" dataKey="Abonelik" stackId="rev" fill="#a78bfa"       radius={[4,4,0,0]} />
+                    <Bar yAxisId="bar" dataKey="Nakit"    stackId="rev" fill="url(#gradNakit)" radius={[0,0,0,0]} />
+                    <Bar yAxisId="bar" dataKey="Kart"     stackId="rev" fill="url(#gradKart)"  radius={[0,0,0,0]} />
+                    <Bar yAxisId="bar" dataKey="Abonelik" stackId="rev" fill="#a78bfa"         radius={[0,0,0,0]} />
+                    <Bar yAxisId="bar" dataKey="Etkinlik" stackId="rev" fill="#f472b6"         radius={[4,4,0,0]} />
                     <Bar yAxisId="bar" dataKey="Gider"  stackId="exp" fill="url(#gradGider)" radius={[4,4,0,0]} />
 
                     <Line

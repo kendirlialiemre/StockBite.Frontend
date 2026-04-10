@@ -23,9 +23,10 @@ const MODULE_NAMES: Record<number, string> = {
   4: 'Kar/Zarar',
   5: 'Masa Yönetimi',
   6: 'Abonelikler',
+  7: 'Etkinlikler',
 };
 
-const ALL_MODULE_TYPES = [1, 2, 3, 4, 5, 6];
+const ALL_MODULE_TYPES = [1, 2, 3, 4, 5, 6, 7];
 
 async function fetchPackages(): Promise<PackageDto[]> {
   const res = await apiClient.get('/admin/packages');

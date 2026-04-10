@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { adminService, ModuleType } from '@stockbite/api-client';
 import type { TenantModuleDto } from '@stockbite/api-client';
 import { Badge, Button, Modal, Input } from '@stockbite/ui';
-import { ShoppingCart, UtensilsCrossed, Package, TrendingUp, Plus, BadgeCheck } from 'lucide-react';
+import { ShoppingCart, UtensilsCrossed, Package, TrendingUp, Plus, BadgeCheck, PartyPopper } from 'lucide-react';
 
 interface ModuleAssignmentPanelProps {
   tenantId: string;
@@ -37,6 +37,11 @@ const MODULE_META: Record<number, { label: string; icon: React.ReactNode; descri
     icon: <BadgeCheck size={18} />,
     description: 'Müşteri saat paketi abonelikleri ve seans takibi',
   },
+  [ModuleType.Events]: {
+    label: 'Etkinlikler',
+    icon: <PartyPopper size={18} />,
+    description: 'Doğum günü ve etkinlik takibi, gelir/maliyet yönetimi',
+  },
 };
 
 const ALL_MODULE_IDS = [
@@ -45,6 +50,7 @@ const ALL_MODULE_IDS = [
   ModuleType.Stock,
   ModuleType.ProfitLoss,
   ModuleType.Memberships,
+  ModuleType.Events,
 ];
 
 interface AssignFormState {
