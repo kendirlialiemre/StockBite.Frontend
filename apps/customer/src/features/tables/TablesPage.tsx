@@ -22,7 +22,11 @@ function useNow(intervalMs = 1000) {
 
 function calcElapsedSeconds(table: TableWithOrderDto, now: number): number {
   if (table.isTimerPaused) return table.timerOffsetSeconds;
-  return table.timerOffsetSeconds + Math.floor((now - new Date(table.timerLastStartedAt).getTime()) / 1000);
+  const lastStarted = new Date(table.timerLastStartedAt).getTime();
+  // Guard against invalid/default dates (e.g. 0001-01-01 from C# DateTime.MinValue)
+  const fallback = new Date(table.openedAt).getTime();
+  const base = lastStarted > 0 && new Date(table.timerLastStartedAt).getFullYear() > 2000 ? lastStarted : fallback;
+  return table.timerOffsetSeconds + Math.floor((now - base) / 1000);
 }
 
 function formatSeconds(totalSeconds: number): string {
