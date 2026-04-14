@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orderService, menuService } from '@stockbite/api-client';
 import { Spinner } from '@stockbite/ui';
 import type { TableWithOrderDto, OrderItemDto } from '@stockbite/api-client';
 import {
   Plus, UtensilsCrossed, X, Search, Trash2, ChevronRight, Timer, Banknote, CreditCard, Bell, BellOff, Layers,
+  Pause, Play, Pencil, Check,
 } from 'lucide-react';
 import { readAlarms, saveAlarm, removeAlarm, clearAllForOrder } from '../../hooks/useTableAlarms';
 import toast from 'react-hot-toast';
@@ -19,13 +20,22 @@ function useNow(intervalMs = 1000) {
   return now;
 }
 
-function formatElapsed(openedAt: string, now: number) {
-  const diff = Math.floor((now - new Date(openedAt).getTime()) / 1000);
-  const h = Math.floor(diff / 3600);
-  const m = Math.floor((diff % 3600) / 60);
-  const s = diff % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+function calcElapsedSeconds(table: TableWithOrderDto, now: number): number {
+  if (table.isTimerPaused) return table.timerOffsetSeconds;
+  return table.timerOffsetSeconds + Math.floor((now - new Date(table.timerLastStartedAt).getTime()) / 1000);
+}
+
+function formatSeconds(totalSeconds: number): string {
+  const s = Math.max(0, totalSeconds);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+
+function formatElapsed(table: TableWithOrderDto, now: number): string {
+  return formatSeconds(calcElapsedSeconds(table, now));
 }
 
 /* ─── Table Card ─────────────────────────────────────────────────── */
@@ -57,9 +67,12 @@ function TableCard({
       <p className="font-bold text-slate-900 text-sm truncate mb-1">{table.name}</p>
 
       {/* Timer */}
-      <div className="flex items-center gap-1 text-xs text-violet-500 font-mono font-semibold mb-3">
-        <Timer size={11} />
-        <span>{formatElapsed(table.openedAt, now)}</span>
+      <div className="flex items-center gap-1 text-xs font-mono font-semibold mb-3">
+        <Timer size={11} className={table.isTimerPaused ? 'text-amber-500' : 'text-violet-500'} />
+        <span className={table.isTimerPaused ? 'text-amber-500' : 'text-violet-500'}>
+          {formatElapsed(table, now)}
+        </span>
+        {table.isTimerPaused && <span className="text-[9px] text-amber-500 font-bold ml-0.5">●</span>}
       </div>
 
       {/* Stats */}
@@ -102,6 +115,10 @@ function TableDetailModal({
   const [alarmInput, setAlarmInput] = useState('');
   const [showAlarmInput, setShowAlarmInput] = useState(false);
   const [, forceUpdate] = useState(0);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(table.name);
+  const [addedCounts, setAddedCounts] = useState<Record<string, number>>({});
+  const addedTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const alarms = readAlarms();
 
   const { data: order, isLoading } = useQuery({
@@ -197,6 +214,19 @@ function TableDetailModal({
     onError: () => toast.error('İptal edilemedi.'),
   });
 
+  const timerMutation = useMutation({
+    mutationFn: (action: 'pause' | 'resume') =>
+      action === 'pause' ? orderService.pauseTimer(order!.id) : orderService.resumeTimer(order!.id),
+    onSuccess: () => onUpdated(),
+    onError: () => toast.error('Timer güncellenemedi.'),
+  });
+
+  const renameMutation = useMutation({
+    mutationFn: (name: string) => orderService.renameTable(table.id, name),
+    onSuccess: () => { onUpdated(); setIsRenaming(false); toast.success('Masa adı güncellendi.'); },
+    onError: () => toast.error('Yeniden adlandırılamadı.'),
+  });
+
   function groupItems(items: OrderItemDto[]) {
     const map = new Map<string, { item: OrderItemDto; ids: string[]; count: number }>();
     for (const item of items) {
@@ -234,15 +264,63 @@ function TableDetailModal({
           {/* Header */}
           <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-slate-100 flex-shrink-0">
             <div className="flex-1 min-w-0">
+              {/* İsim satırı */}
               <div className="flex items-center gap-2">
-                <h2 className="font-bold text-slate-900 text-base truncate">{table.name}</h2>
-                <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full flex-shrink-0">
-                  AÇIK
-                </span>
+                {isRenaming ? (
+                  <div className="flex items-center gap-1.5 flex-1">
+                    <input
+                      autoFocus
+                      value={renameValue}
+                      onChange={e => setRenameValue(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && renameValue.trim()) renameMutation.mutate(renameValue.trim());
+                        if (e.key === 'Escape') { setIsRenaming(false); setRenameValue(table.name); }
+                      }}
+                      className="border border-violet-400 rounded-lg px-2 py-0.5 text-sm font-bold outline-none focus:ring-2 focus:ring-violet-300 flex-1 min-w-0"
+                    />
+                    <button onClick={() => renameValue.trim() && renameMutation.mutate(renameValue.trim())}
+                      className="p-1 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-colors flex-shrink-0">
+                      <Check size={13} />
+                    </button>
+                    <button onClick={() => { setIsRenaming(false); setRenameValue(table.name); }}
+                      className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors flex-shrink-0">
+                      <X size={13} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <h2 className="font-bold text-slate-900 text-base truncate">{table.name}</h2>
+                    <button onClick={() => { setIsRenaming(true); setRenameValue(table.name); }}
+                      className="p-1 rounded-lg text-slate-300 hover:text-violet-500 hover:bg-violet-50 transition-colors flex-shrink-0">
+                      <Pencil size={12} />
+                    </button>
+                    <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full flex-shrink-0">
+                      AÇIK
+                    </span>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-1 mt-0.5 text-xs text-violet-500 font-mono font-semibold">
-                <Timer size={11} />
-                <span>{formatElapsed(table.openedAt, now)}</span>
+              {/* Timer satırı */}
+              <div className="flex items-center gap-2 mt-1">
+                <div className={`flex items-center gap-1 text-xs font-mono font-semibold ${table.isTimerPaused ? 'text-amber-500' : 'text-violet-500'}`}>
+                  <Timer size={11} />
+                  <span>{formatElapsed(table, now)}</span>
+                  {table.isTimerPaused && <span className="text-[9px] font-bold">DURAKLATILDI</span>}
+                </div>
+                {order && (
+                  <button
+                    onClick={() => timerMutation.mutate(table.isTimerPaused ? 'resume' : 'pause')}
+                    disabled={timerMutation.isPending}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold transition-colors ${
+                      table.isTimerPaused
+                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                        : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                    }`}
+                  >
+                    {table.isTimerPaused ? <Play size={10} /> : <Pause size={10} />}
+                    {table.isTimerPaused ? 'Devam' : 'Duraklat'}
+                  </button>
+                )}
               </div>
 
               {/* Alarm */}
@@ -462,26 +540,41 @@ function TableDetailModal({
                 <div className="flex justify-center py-8"><Spinner /></div>
               ) : filteredItems.length === 0 ? (
                 <p className="text-center text-slate-400 text-sm py-6">Ürün bulunamadı.</p>
-              ) : filteredItems.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => { addMutation.mutate({ menuItemId: item.id }); setShowAddItem(false); }}
-                  className="w-full flex items-center gap-3 hover:bg-violet-50 rounded-xl px-3 py-2.5 text-left transition-colors group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-800 text-sm truncate">{item.name}</p>
-                    {item.description && (
-                      <p className="text-xs text-slate-400 truncate">{item.description}</p>
-                    )}
-                  </div>
-                  <span className="font-bold text-violet-700 text-sm flex-shrink-0">
-                    ₺{item.price.toFixed(2)}
-                  </span>
-                  <div className="w-6 h-6 rounded-full bg-violet-100 group-hover:bg-violet-600 flex items-center justify-center transition-colors flex-shrink-0">
-                    <Plus size={13} className="text-violet-600 group-hover:text-white transition-colors" />
-                  </div>
-                </button>
-              ))}
+              ) : filteredItems.map(item => {
+                const addedCount = addedCounts[item.id] ?? 0;
+                const justAdded = addedCount > 0;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      addMutation.mutate({ menuItemId: item.id });
+                      setAddedCounts(prev => ({ ...prev, [item.id]: (prev[item.id] ?? 0) + 1 }));
+                      if (addedTimers.current[item.id]) clearTimeout(addedTimers.current[item.id]);
+                      addedTimers.current[item.id] = setTimeout(() => {
+                        setAddedCounts(prev => { const n = { ...prev }; delete n[item.id]; return n; });
+                      }, 1500);
+                    }}
+                    className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors group ${justAdded ? 'bg-emerald-50' : 'hover:bg-violet-50'}`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-800 text-sm truncate">{item.name}</p>
+                      {item.description && (
+                        <p className="text-xs text-slate-400 truncate">{item.description}</p>
+                      )}
+                    </div>
+                    <span className="font-bold text-violet-700 text-sm flex-shrink-0">
+                      ₺{item.price.toFixed(2)}
+                    </span>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all flex-shrink-0 text-[10px] font-black ${
+                      justAdded
+                        ? 'bg-emerald-500 text-white scale-110'
+                        : 'bg-violet-100 group-hover:bg-violet-600 text-violet-600 group-hover:text-white'
+                    }`}>
+                      {justAdded ? `+${addedCount}` : <Plus size={13} />}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </>
@@ -587,13 +680,15 @@ export function TablesPage() {
   const [showOpenModal, setShowOpenModal] = useState(false);
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState('');
-  const [selectedTable, setSelectedTable] = useState<TableWithOrderDto | null>(null);
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
 
   const { data: tables, isLoading } = useQuery({
     queryKey: ['active-tables'],
     queryFn: () => orderService.getActiveTables(),
     refetchInterval: 8000,
   });
+
+  const selectedTable = tables?.find(t => t.id === selectedTableId) ?? null;
 
   const openMutation = useMutation({
     mutationFn: (n: string) => orderService.openTable(n),
@@ -602,7 +697,7 @@ export function TablesPage() {
       setShowOpenModal(false);
       setName('');
       toast.success(`"${table.name}" açıldı.`);
-      setSelectedTable(table);
+      setSelectedTableId(table.id);
     },
     onError: () => toast.error('Masa açılamadı.'),
   });
@@ -652,7 +747,7 @@ export function TablesPage() {
               key={table.id}
               table={table}
               now={now}
-              onClick={() => setSelectedTable(table)}
+              onClick={() => setSelectedTableId(table.id)}
             />
           ))}
         </div>
@@ -700,7 +795,7 @@ export function TablesPage() {
         <TableDetailModal
           table={selectedTable}
           now={now}
-          onClose={() => setSelectedTable(null)}
+          onClose={() => setSelectedTableId(null)}
           onUpdated={handleRefresh}
         />
       )}

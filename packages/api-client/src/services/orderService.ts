@@ -68,4 +68,16 @@ export const orderService = {
   async cancelOrder(orderId: string): Promise<void> {
     await apiClient.post(`/orders/${orderId}/cancel`);
   },
+
+  async pauseTimer(orderId: string): Promise<void> {
+    await apiClient.post(`/orders/${orderId}/timer/pause`);
+  },
+
+  async resumeTimer(orderId: string): Promise<void> {
+    await apiClient.post(`/orders/${orderId}/timer/resume`);
+  },
+
+  async renameTable(tableId: string, name: string): Promise<void> {
+    await apiClient.patch(`/tables/${tableId}/name`, { name });
+  },
 };

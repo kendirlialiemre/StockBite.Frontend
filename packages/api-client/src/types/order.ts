@@ -12,6 +12,9 @@ export interface TableWithOrderDto {
   total: number;
   itemCount: number;
   openedAt: string;
+  isTimerPaused: boolean;
+  timerOffsetSeconds: number;
+  timerLastStartedAt: string;
 }
 
 export type OrderStatus = 0 | 1 | 2; // Open | Closed | Cancelled
