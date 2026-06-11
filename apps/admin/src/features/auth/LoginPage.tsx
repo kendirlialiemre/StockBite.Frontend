@@ -85,7 +85,7 @@ export function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="123456"
               error={errors.password}
               required
               disabled={isLoading}

@@ -116,7 +116,11 @@ export function OrdersListPage() {
                       </td>
                     </tr>
                   )}
-                  {paginated.map((order, idx) => (
+                  {paginated.map((order, idx) => {
+                    const computedTotal = (order.items && order.items.length > 0)
+                      ? order.items.reduce((s, it) => s + it.unitPrice * it.quantity, 0)
+                      : order.totalAmount ?? 0;
+                    return (
                     <tr
                       key={order.id}
                       className={`border-b border-slate-100 last:border-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-violet-50 transition-colors`}
@@ -140,7 +144,7 @@ export function OrdersListPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right text-slate-900 font-medium">
-                        ₺{order.totalAmount.toFixed(2)}
+                        ₺{computedTotal.toFixed(2)}
                       </td>
                       <td className="px-4 py-3 text-slate-500">
                         {new Date(order.openedAt).toLocaleString('tr-TR')}
@@ -154,7 +158,8 @@ export function OrdersListPage() {
                         </Link>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -95,6 +95,8 @@ export function OrderDetailPage() {
     }, {})
   );
 
+  const computedTotal = order.items.reduce((sum, it) => sum + it.unitPrice * it.quantity, 0);
+
   return (
     <div className="p-6 space-y-5 max-w-2xl">
       <button
@@ -184,7 +186,7 @@ export function OrderDetailPage() {
                   <td className="px-4 py-2 text-center text-slate-600">{item.quantity}</td>
                   <td className="px-4 py-2 text-right text-slate-600">₺{item.unitPrice.toFixed(2)}</td>
                   <td className="px-4 py-2 text-right font-medium text-slate-900">
-                    ₺{(item.unitPrice * item.quantity).toFixed(2)}
+                      ₺{(item.unitPrice * item.quantity).toFixed(2)}
                   </td>
                 </tr>
               ))}
@@ -195,7 +197,7 @@ export function OrderDetailPage() {
                   Toplam
                 </td>
                 <td className="px-4 py-3 text-right font-bold text-slate-900">
-                  ₺{order.totalAmount.toFixed(2)}
+                    ₺{computedTotal.toFixed(2)}
                 </td>
               </tr>
             </tfoot>
@@ -241,7 +243,7 @@ export function OrderDetailPage() {
             </div>
 
             <p className="text-sm text-slate-500 mb-5">
-              Toplam: <span className="font-bold text-slate-900">₺{order.totalAmount.toFixed(2)}</span>
+              Toplam: <span className="font-bold text-slate-900">₺{computedTotal.toFixed(2)}</span>
             </p>
 
             <div className="grid grid-cols-3 gap-3 mb-4">
@@ -262,7 +264,7 @@ export function OrderDetailPage() {
                 <span className="text-sm font-semibold text-slate-800">Kart</span>
               </button>
               <button
-                onClick={() => { setMixedCash(''); setMixedCard(order.totalAmount.toFixed(2)); }}
+                onClick={() => { setMixedCash(''); setMixedCard(computedTotal.toFixed(2)); }}
                 disabled={closeMutation.isPending}
                 className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 hover:border-violet-500 hover:bg-violet-50 transition-all disabled:opacity-50"
               >
@@ -270,12 +272,12 @@ export function OrderDetailPage() {
                 <span className="text-sm font-semibold text-slate-800">Karma</span>
               </button>
             </div>
-
             {/* Mixed payment inputs */}
             {(mixedCash !== '' || mixedCard !== '') && (() => {
+              const total = computedTotal;
               const cash = parseFloat(mixedCash) || 0;
               const card = parseFloat(mixedCard) || 0;
-              const remaining = order.totalAmount - cash - card;
+              const remaining = total - cash - card;
               const isValid = Math.abs(remaining) < 0.01;
               return (
                 <div className="border border-violet-200 rounded-xl p-4 space-y-3 bg-violet-50">
@@ -291,7 +293,7 @@ export function OrderDetailPage() {
                         onChange={e => {
                           setMixedCash(e.target.value);
                           const c = parseFloat(e.target.value) || 0;
-                          setMixedCard((order.totalAmount - c).toFixed(2));
+                          setMixedCard((total - c).toFixed(2));
                         }}
                         className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-violet-400"
                         placeholder="0.00"
@@ -310,7 +312,7 @@ export function OrderDetailPage() {
                         onChange={e => {
                           setMixedCard(e.target.value);
                           const c = parseFloat(e.target.value) || 0;
-                          setMixedCash((order.totalAmount - c).toFixed(2));
+                          setMixedCash((total - c).toFixed(2));
                         }}
                         className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-violet-400"
                         placeholder="0.00"
@@ -319,7 +321,7 @@ export function OrderDetailPage() {
                   </div>
                   {!isValid && (
                     <p className="text-xs text-red-500 text-center">
-                      Kalan: ₺{remaining.toFixed(2)} — Toplam ₺{order.totalAmount.toFixed(2)} olmalı
+                      Kalan: ₺{remaining.toFixed(2)} — Toplam ₺{total.toFixed(2)} olmalı
                     </p>
                   )}
                   <button

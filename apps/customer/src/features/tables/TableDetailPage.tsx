@@ -157,6 +157,11 @@ export function TableDetailPage() {
     return [...map.values()];
   }
 
+  const computedTotal = order?.items.reduce(
+    (sum, item) => sum + item.unitPrice * item.quantity,
+    0
+  ) ?? 0;
+
   const grouped = groupItems(order.items);
 
   return (
@@ -174,7 +179,7 @@ export function TableDetailPage() {
           <p className="text-xs text-slate-400">{elapsed} • {order.items.length} kalem</p>
         </div>
         <div className="flex-shrink-0 bg-violet-50 rounded-xl px-3 py-1.5">
-          <p className="text-violet-700 font-black text-sm">₺{order.totalAmount.toFixed(2)}</p>
+          <p className="text-violet-700 font-black text-sm">₺{computedTotal.toFixed(2)}</p>
         </div>
       </div>
 
@@ -230,7 +235,7 @@ export function TableDetailPage() {
       <div className="bg-white border-t border-slate-100 p-4 max-w-xl mx-auto w-full">
         <div className="flex items-center justify-between mb-4">
           <span className="text-slate-500 font-medium text-sm">Toplam</span>
-          <span className="text-2xl font-black text-slate-900">₺{order.totalAmount.toFixed(2)}</span>
+          <span className="text-2xl font-black text-slate-900">₺{computedTotal.toFixed(2)}</span>
         </div>
         <div className="flex gap-2">
           <button
@@ -315,7 +320,7 @@ export function TableDetailPage() {
             </div>
             <div className="bg-violet-50 rounded-xl px-4 py-3 mb-5">
               <p className="text-xs text-violet-500 font-medium">{order.tableName} • Toplam Tutar</p>
-              <p className="text-2xl font-black text-violet-700">₺{order.totalAmount.toFixed(2)}</p>
+              <p className="text-2xl font-black text-violet-700">₺{computedTotal.toFixed(2)}</p>
             </div>
             <div className="grid grid-cols-3 gap-3 mb-4">
               <button
@@ -335,7 +340,7 @@ export function TableDetailPage() {
                 <span className="text-sm font-bold text-slate-800">Kart</span>
               </button>
               <button
-                onClick={() => { setMixedCash(''); setMixedCard(order.totalAmount.toFixed(2)); }}
+                onClick={() => { setMixedCash(''); setMixedCard(computedTotal.toFixed(2)); }}
                 disabled={closeMutation.isPending}
                 className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 hover:border-violet-500 hover:bg-violet-50 transition-all disabled:opacity-50"
               >
@@ -345,9 +350,10 @@ export function TableDetailPage() {
             </div>
 
             {(mixedCash !== '' || mixedCard !== '') && (() => {
+              const total = computedTotal;
               const cash = parseFloat(mixedCash) || 0;
               const card = parseFloat(mixedCard) || 0;
-              const remaining = order.totalAmount - cash - card;
+              const remaining = total - cash - card;
               const isValid = Math.abs(remaining) < 0.01;
               return (
                 <div className="border border-violet-200 rounded-xl p-4 space-y-3 bg-violet-50">
@@ -357,7 +363,7 @@ export function TableDetailPage() {
                       <label className="text-xs text-slate-500 block mb-1">Nakit (₺)</label>
                       <input
                         type="number" min="0" step="0.01" value={mixedCash}
-                        onChange={e => { setMixedCash(e.target.value); setMixedCard((order.totalAmount - (parseFloat(e.target.value) || 0)).toFixed(2)); }}
+                        onChange={e => { setMixedCash(e.target.value); setMixedCard((total - (parseFloat(e.target.value) || 0)).toFixed(2)); }}
                         className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-violet-400"
                         placeholder="0.00"
                       />
@@ -369,7 +375,7 @@ export function TableDetailPage() {
                       <label className="text-xs text-slate-500 block mb-1">Kart (₺)</label>
                       <input
                         type="number" min="0" step="0.01" value={mixedCard}
-                        onChange={e => { setMixedCard(e.target.value); setMixedCash((order.totalAmount - (parseFloat(e.target.value) || 0)).toFixed(2)); }}
+                        onChange={e => { setMixedCard(e.target.value); setMixedCash((total - (parseFloat(e.target.value) || 0)).toFixed(2)); }}
                         className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-violet-400"
                         placeholder="0.00"
                       />
@@ -377,7 +383,7 @@ export function TableDetailPage() {
                   </div>
                   {!isValid && (
                     <p className="text-xs text-red-500 text-center">
-                      Kalan: ₺{remaining.toFixed(2)} — Toplam ₺{order.totalAmount.toFixed(2)} olmalı
+                      Kalan: ₺{remaining.toFixed(2)} — Toplam ₺{total.toFixed(2)} olmalı
                     </p>
                   )}
                   <button
